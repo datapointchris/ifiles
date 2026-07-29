@@ -19,6 +19,7 @@ type statusReport struct {
 	Source        string `json:"source"`
 	Config        string `json:"config"`
 	HasToken      bool   `json:"hasToken"`
+	TokenFrom     string `json:"tokenFrom,omitempty"`
 	Reachable     bool   `json:"reachable"`
 	Authenticated bool   `json:"authenticated"`
 	Error         string `json:"error,omitempty"`
@@ -46,8 +47,9 @@ different fixes.`,
 			return finishStatus(cmd, report, errors.New("no server configured: run `ifiles auth login`"))
 		}
 
-		token, tokenErr := auth.NewTokenStore().Load(cfg.URL)
+		token, backend, tokenErr := auth.NewTokenStore().Load(cfg.URL)
 		report.HasToken = tokenErr == nil
+		report.TokenFrom = string(backend)
 
 		client, err := filebrowser.New(filebrowser.Options{BaseURL: cfg.URL, Token: token, Source: cfg.Source})
 		if err != nil {
@@ -79,6 +81,7 @@ different fixes.`,
 		outf(cmd, "Server:        %s", report.Server)
 		outf(cmd, "Source:        %s", report.Source)
 		outf(cmd, "Authenticated: yes")
+		outf(cmd, "Token from:    %s", report.TokenFrom)
 		outf(cmd, "Config:        %s", report.Config)
 
 		table := newTable(cmd.OutOrStdout())

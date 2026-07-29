@@ -12,7 +12,11 @@ The server is OIDC-only, so there is no password to send and no headless login
 flow. Access is a long-lived API token instead, and creating the first one
 requires a browser session — so the token is minted in the web UI under
 Settings, then pasted in here once. It is stored in the OS keyring, keyed by
-server URL, and never written to the config file.`,
+server URL, and never written to the config file.
+
+Hosts with no keyring — WSL, containers, headless servers — get a 0600 file
+under the state directory instead, because the alternative is a tool that
+cannot run there at all. "auth status" reports which one a token came from.`,
 	Example: `  ifiles auth login              paste a token minted in the web UI
   ifiles auth status             is the server up and the token still valid
   ifiles auth logout             forget the token for this server`,

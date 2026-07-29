@@ -17,17 +17,27 @@ wrong about the upload mechanism and about at least one route path. The router i
 `backend/swagger/docs/swagger.json` covers only annotated handlers, so a route
 missing from it may still exist — `GET /settings/sources` does.
 
-**Pin to the deployed tag.** The container runs `gtstef/filebrowser:stable`, which is
-currently `v1.5.0-stable`. Upstream's version lineage is confusing: `v1.5.2-beta` is
-*older* by date than `v1.5.0-stable`, so reading `main` gives you a different API
-than the one deployed. Check what `stable` resolves to before trusting a handler:
+**Ask the running server what it has; do not infer it from the tag.** The container
+is declared as `gtstef/filebrowser:stable` with `restart: unless-stopped`, so it runs
+whatever `stable` meant when the image was last *pulled* — which is not what `stable`
+means upstream today, and the gap is measured in stable releases, not days. Reading
+the source at whatever `gh release list` calls latest describes a server nobody is
+running. Upstream's lineage compounds it: `v1.5.2-beta` is *older* by date than
+`v1.5.0-stable`, so `main` is a third different API.
+
+The live router is the only authority, and it answers unauthenticated. A registered
+route replies `401` with a JSON body; an unregistered one replies Go's plain-text
+`404 page not found`, which is how to tell "needs a token" from "does not exist":
 
 ```bash
-gh release list --repo gtsteffaniak/filebrowser --limit 5
+curl -s -o /dev/null -w '%{http_code}\n' https://files.ichrisbirch.com/api/settings/sources
 ```
 
-The floating `stable` tag means the server can move under this client without any
-change here. A `v2.0.0-preview` line already exists.
+Version-fingerprint it with a route that moved. `GET /settings/sources` and
+`GET /tools/search` arrived in `v1.3.0-stable`; before that they were `GET /search`
+with no sources route, and `DELETE /resources/bulk` replaced
+`POST /resources/bulk/delete` in `v1.4.0-stable`. Which of those answer 401 pins the
+deployed version to a range without shell access to the container.
 
 ## Protocol details that will not be guessed correctly
 
@@ -76,9 +86,29 @@ granted by the deployed `userDefaults`. `ApplyUserDefaults` runs only when a use
 auto-created, so changing the config does not grant it retroactively; on an existing
 OIDC user, login syncs `Admin` and nothing else.
 
+**There is not always an OS keyring to put the token in.** On Linux `go-keyring` is
+the Secret Service over D-Bus, and WSL, containers, and headless servers have no
+provider — the call fails with `exec: "dbus-launch": executable file not found in
+$PATH` before any request is made, which names nothing a user can act on. So the
+store falls back to a 0600 file and `Save` returns the `Backend` it used rather than
+swallowing it: a downgrade from keychain to plaintext has to be visible at the moment
+it happens. `Load` prefers the keyring whenever it holds a token, so a host that
+gains a provider later moves onto it with no re-login, and `Delete` clears both —
+otherwise a file token outlives the logout that was meant to remove it. The
+keyringless path is reproducible without WSL:
+
+```bash
+GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles ls /
+```
+
 ## Where it runs
 
-Any personal machine. The server is reachable at `files.ichrisbirch.com` through the
+Any personal machine, plus the work WSL box, which is listed in the
+`wsl-work-workstation` manifest in `~/dotfiles` and installed from the release
+tarball by the offline bundler. It is a git-only node — not an SSH or Syncthing peer
+— so nothing here can be installed or tested on it from the personal desk.
+
+The server is reachable at `files.ichrisbirch.com` through the
 Cloudflare tunnel, which is the constraint the whole design turns on: **the free tier
 caps a request body at 100 MB**, and Quantum's WebDAV has no chunking
 ([#2404](https://github.com/gtsteffaniak/filebrowser/issues/2404)). Keep

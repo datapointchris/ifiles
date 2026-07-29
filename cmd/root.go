@@ -110,7 +110,7 @@ func loadConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
-// newClient builds an authenticated client. The token comes from the keyring
+// newClient builds an authenticated client. The token comes from the token store
 // keyed by server URL, so the config file never holds a secret.
 func newClient() (*filebrowser.Client, *config.Config, error) {
 	cfg, err := loadConfig()
@@ -121,7 +121,7 @@ func newClient() (*filebrowser.Client, *config.Config, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	token, err := auth.NewTokenStore().Load(url)
+	token, _, err := auth.NewTokenStore().Load(url)
 	if err != nil {
 		return nil, nil, err
 	}

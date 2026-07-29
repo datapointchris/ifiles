@@ -11,7 +11,7 @@ import (
 var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Delete the stored token for a server",
-	Long: `Removes the token from the OS keyring.
+	Long: `Removes the stored token, from the OS keyring and the fallback file both.
 
 The token stays valid on the server — this only forgets it locally. To stop it
 working, revoke it with "ifiles tokens rm" or in the web UI.`,

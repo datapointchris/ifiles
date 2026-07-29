@@ -16,7 +16,7 @@ import (
 var authLoginCmd = &cobra.Command{
 	Use:   "login [server-url]",
 	Short: "Store an API token for a server",
-	Long: `Stores an API token in the OS keyring and records the server URL.
+	Long: `Stores an API token and records the server URL.
 
 Mint the token in the web UI first: Settings, then API tokens. The account needs
 the "api" permission for that page to work — without it the server answers 403,
@@ -86,14 +86,20 @@ nobody should have to type.`,
 		if err := chooseSource(cmd, cfg, sources); err != nil {
 			return err
 		}
-		if err := auth.NewTokenStore().Save(url, token); err != nil {
-			return fmt.Errorf("saving token to keyring: %w", err)
+		store := auth.NewTokenStore()
+		backend, err := store.Save(url, token)
+		if err != nil {
+			return fmt.Errorf("saving token: %w", err)
 		}
 		if err := cfg.Save(); err != nil {
 			return err
 		}
 
 		infof(cmd, "Logged in to %s as source %q.", url, cfg.Source)
+		if backend == auth.BackendFile {
+			infof(cmd, "No OS keyring on this host, so the token is in %s at 0600 instead.", store.FilePath())
+			infof(cmd, "If this host should have one, fix that and log in again to move the token into it.")
+		}
 		infof(cmd, "Config: %s", cfg.Path())
 		return nil
 	},

@@ -41,11 +41,20 @@ and records the source name, which every resource call needs and nobody should h
 The account needs the **`api` permission** for step 1 to work. Without it the server answers 403,
 because minting a token is itself an API-permissioned action.
 
-For a script, `IFILES_TOKEN` overrides the keyring, or pipe it in:
+For a script, `IFILES_TOKEN` overrides both stores, or pipe it in:
 
 ```bash
 pass show ifiles | ifiles auth login -
 ```
+
+**On a host with no keyring**, the token goes to `$XDG_STATE_HOME/ifiles/token.json` at `0600`
+instead. On Linux the keyring is the Secret Service over D-Bus, which WSL, containers, and headless
+servers do not have — there the keyring call fails before any request is made, with
+`exec: "dbus-launch": executable file not found in $PATH`. Refusing to store a token would leave the
+tool unusable on exactly the machines whose only other route to the server is a browser, so it stores
+one and says where: `auth login` reports the fallback, and `ifiles auth status` names the backend a
+token came from. The keyring still wins whenever it holds a token, so a host that gains a Secret
+Service later moves onto it without a re-login.
 
 ## Configuration
 
@@ -68,8 +77,8 @@ unchunked path could not clear the 100 MB cap anyway.
 **Interrupting is safe.** On Ctrl-C the server is told to keep its partial file *before* the transfer
 is aborted; that ordering is the whole mechanism, because the server only consults its pause register
 when a chunk request fails. The offset is recorded at
-`$XDG_STATE_HOME/ifiles/uploads.json` — it has to be kept locally, since no endpoint reports how much
-of a partial upload arrived. Re-running the same command resumes.
+`$XDG_STATE_HOME/ifiles/transfers.json` — it has to be kept locally, since no endpoint reports how
+much of a partial upload arrived. Re-running the same command resumes.
 
 A local file that changed between attempts invalidates the resume. The server seeks to whatever
 offset it is given without checking the partial file is really that long, so resuming a modified file
