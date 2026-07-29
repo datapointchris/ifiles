@@ -1,0 +1,17 @@
+# Compiled binary
+ifiles
+
+# Test binary
+*.test
+
+# Test coverage reports
+coverage.out
+coverage.html
+
+# goreleaser output
+dist/
+
+# Task build cache
+.task/
+
+.planning

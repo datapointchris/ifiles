@@ -1,0 +1,64 @@
+version: "3"
+
+vars:
+  BINARY_NAME: ifiles
+  BUILD_DIR: .
+  # ~/.local/bin precedes ~/go/bin on PATH. Installing a dev build to $GOBIN
+  # lets the released binary shadow it, so committed changes look like they
+  # never took effect.
+  INSTALL_DIR: "{{.HOME}}/.local/bin"
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  LDFLAGS: >-
+    -X github.com/datapointchris/ifiles/cmd.version={{.VERSION}}
+    -X github.com/datapointchris/ifiles/cmd.commit={{.COMMIT}}
+
+tasks:
+  default:
+    desc: Build the ifiles binary (default)
+    cmds:
+      - task: build
+
+  build:
+    desc: Build the ifiles binary
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} .
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BINARY_NAME}}"
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  test:coverage:
+    desc: Run tests with an HTML coverage report
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report{{":"}} coverage.html"
+
+  lint:
+    desc: Run gofumpt, go vet, and golangci-lint
+    cmds:
+      - gofumpt -l .
+      - go vet ./...
+      - golangci-lint run ./...
+
+  install:
+    desc: Install the dev build to ~/.local/bin
+    deps: [build]
+    cmds:
+      - install -m 755 {{.BUILD_DIR}}/{{.BINARY_NAME}} {{.INSTALL_DIR}}/{{.BINARY_NAME}}
+      - echo "Installed{{":"}} {{.INSTALL_DIR}}/{{.BINARY_NAME}}"
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -f {{.BUILD_DIR}}/{{.BINARY_NAME}} coverage.out coverage.html

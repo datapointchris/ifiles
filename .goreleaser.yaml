@@ -1,0 +1,25 @@
+version: 2
+
+builds:
+  - main: .
+    binary: ifiles
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/datapointchris/ifiles/cmd.version={{.Version}}
+      - -X github.com/datapointchris/ifiles/cmd.commit={{.ShortCommit}}
+      - -X github.com/datapointchris/ifiles/cmd.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: "ifiles_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+changelog:
+  sort: asc
