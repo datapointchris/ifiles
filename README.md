@@ -27,6 +27,35 @@ REST API. `ifiles` does the same thing from a terminal.
 task install     # dev build to ~/.local/bin
 ```
 
+## Shell completion
+
+Remote paths tab-complete against the server, so a long filename is a Tab rather than a copy out of
+the web UI:
+
+```bash
+ifiles get /photos/2026-07-<TAB>
+```
+
+`get`, `cat`, `rm`, `mv`, `cp`, and `put`'s remote argument complete any entry; `ls` and `mkdir`
+complete only directories, since a file in either position can only produce a failed command. A
+directory arrives with a trailing slash and no trailing space, so a second Tab descends into it. Local
+positions — `put`'s first argument, `get`'s second — fall through to the shell's own file completion,
+and `--source` completes from the server's source list.
+
+Install the script the way every other completion in `~/dotfiles` is installed:
+
+```bash
+ifiles completion zsh > "$XDG_CACHE_HOME/zsh/completions/ifiles.zsh"
+```
+
+Each Tab is a real request: the shell runs `ifiles __complete get /photos/` as a fresh process, so
+nothing can be held in memory between them. Listings are cached for ten seconds at
+`$XDG_CACHE_HOME/ifiles/listings.json` — long enough that tabbing through one directory hits the
+server once, short enough that a file uploaded by the previous command shows up in the next
+completion. A completion that fails for any reason — no token, tunnel down, expired token — offers
+nothing and says nothing, because its stdout *is* the candidate list and anything written there
+arrives as a suggestion.
+
 ## Authentication
 
 The instance is OIDC-only, so there is no password to send and no headless login. Access is a
@@ -110,8 +139,7 @@ seek to.
 ## Notes on the API
 
 The route table and every wire shape were read from the server's source at tag `v1.5.0-stable`, which
-is what the deployed `gtstef/filebrowser:stable` image resolves to. The published documentation is
-wrong in places that matter:
+is the image the deployment pins. The published documentation is wrong in places that matter:
 
 | Documented | Actually |
 | --- | --- |

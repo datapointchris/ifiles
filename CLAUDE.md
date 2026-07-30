@@ -77,6 +77,30 @@ deployed version to a range without shell access to the container.
 - **The token goes in the `Authorization` header only.** The server also accepts
   `?auth=<token>`, which would put the secret in Traefik's access log.
 
+## Shell completion
+
+Remote paths complete over the API, so `ifiles __complete get /pho` is a real request made
+by a fresh process on every Tab. Three things about that are not guessable:
+
+- **A candidate must keep the directory prefix exactly as typed.** Bash filters the
+  returned list through `compgen -W ... -- "$cur"` and zsh through `_describe`, so
+  normalizing a typed `photos/` to `/photos/x` matches nothing and reads as broken
+  completion rather than as a bug. `completionCandidates` splits with `path.Split` and
+  re-attaches the literal half; `TestCompletionKeepsTheDirectoryExactlyAsTyped` pins it.
+- **Stdout is the candidate list.** A diagnostic printed there is offered as a suggestion
+  and a returned error lands in the user's command line, so every failure — no token,
+  tunnel down, expired token — returns `ShellCompDirectiveError` with no output. Nothing on
+  the completion path may write to stdout.
+- **Flag completions register in the file that defines the flag**, not in `complete.go`.
+  Init functions run in filename order, so `complete.go` runs before `get.go`, `put.go`, and
+  `root.go` have created the flags to attach to. `mustCompleteFlag` panics rather than
+  discarding cobra's error, so a renamed flag fails on the first run instead of silently
+  completing nothing. Assigning `ValidArgsFunction` centrally *is* safe — command variables
+  are constructed before any init runs.
+
+Listings are cached for `completion.DefaultTTL` under `XDG_CACHE_HOME`. Cache, not state:
+losing it costs one request, which is what distinguishes it from the resume offsets.
+
 ## Authentication constraint
 
 The instance is OIDC-only (`auth.methods.password.enabled: false`), so there is no

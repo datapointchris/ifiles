@@ -95,6 +95,8 @@ func init() {
 	flags.StringVar(&sourceFlag, "source", "", "Quantum source to address (default is the configured source)")
 	flags.BoolVar(&noInput, "no-input", false, "never prompt; fail naming the flag that would have answered")
 	flags.IntVar(&timeoutFlag, "timeout", 0, "seconds to allow a transfer (0 for no limit)")
+
+	mustCompleteFlag(rootCmd, "source", completeSources)
 }
 
 // loadConfig reads the config, honoring --source as an override of the stored

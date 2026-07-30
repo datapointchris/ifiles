@@ -226,5 +226,11 @@ func init() {
 	putCmd.Flags().BoolVar(&putOverride, "override", false, "replace an existing remote file")
 	putCmd.Flags().BoolVar(&putNoResume, "no-resume", false, "ignore a recorded offset and upload from the start")
 	putCmd.Flags().StringVar(&putChunkSize, "chunk-size", "", "chunk size for this upload, e.g. 8MiB (default is 32MiB)")
+	// Suggestions, not the accepted set: any size ParseSize understands is valid,
+	// and these are the ones worth reaching for on a link that keeps dropping.
+	mustCompleteFlag(putCmd, "chunk-size", cobra.FixedCompletions(
+		[]string{"4MiB", "8MiB", "16MiB", "32MiB", "64MiB"},
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	rootCmd.AddCommand(putCmd)
 }
