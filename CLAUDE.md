@@ -17,16 +17,19 @@ wrong about the upload mechanism and about at least one route path. The router i
 `backend/swagger/docs/swagger.json` covers only annotated handlers, so a route
 missing from it may still exist — `GET /settings/sources` does.
 
-**Ask the running server what it has; do not infer it from the tag.** The container
-is declared as `gtstef/filebrowser:stable` with `restart: unless-stopped`, so it runs
-whatever `stable` meant when the image was last *pulled* — which is not what `stable`
-means upstream today, and the gap is measured in stable releases, not days. Reading
-the source at whatever `gh release list` calls latest describes a server nobody is
-running. Upstream's lineage compounds it: `v1.5.2-beta` is *older* by date than
-`v1.5.0-stable`, so `main` is a third different API.
+**Read the source at the version the server actually runs — the pinned tag in
+`~/homelab/containers/files-lxc/docker-compose.yml`.** Not what `gh release list` calls
+latest: upstream's lineage is not chronological, so `v1.5.2-beta` is *older* by date
+than `v1.5.0-stable`, and `main` is a third different API again.
 
-The live router is the only authority, and it answers unauthenticated. A registered
-route replies `401` with a JSON body; an unregistered one replies Go's plain-text
+That tag floated (`stable`) until 2026-07-29, which is how the instance came to run
+four stable releases behind for four months: `restart: unless-stopped` means a floating
+tag only moves on a *pull*, so the running API fell behind a compose file that read as
+current. A pin records what *should* be deployed, so fingerprint the live router
+whenever the answer matters.
+
+It answers unauthenticated, which is what makes that checkable. A registered route
+replies `401` with a JSON body; an unregistered one replies Go's plain-text
 `404 page not found`, which is how to tell "needs a token" from "does not exist":
 
 ```bash
