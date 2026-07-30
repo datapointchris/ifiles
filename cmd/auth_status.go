@@ -44,7 +44,7 @@ different fixes.`,
 
 		report := statusReport{Server: cfg.URL, Source: cfg.Source, Config: cfg.Path()}
 		if cfg.URL == "" {
-			return finishStatus(cmd, report, errors.New("no server configured: run `ifiles auth login`"))
+			return finishStatus(cmd, report, errors.New("no server configured: run `ifiles auth login <url>`"))
 		}
 
 		token, backend, tokenErr := auth.NewTokenStore().Load(cfg.URL)

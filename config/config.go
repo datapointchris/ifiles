@@ -125,7 +125,9 @@ func (c *Config) Chunks() (int64, error) {
 // supply one.
 func (c *Config) RequireURL() (string, error) {
 	if c.URL == "" {
-		return "", fmt.Errorf("no server configured: run `ifiles auth login`, set url in %s, or set IFILES_URL", c.path)
+		// Names the URL argument, because the bare `ifiles auth login` is what
+		// produces this error and pointing at it again strands a first-time user.
+		return "", fmt.Errorf("no server configured: run `ifiles auth login <url>`, set url in %s, or set IFILES_URL", c.path)
 	}
 	return c.URL, nil
 }
