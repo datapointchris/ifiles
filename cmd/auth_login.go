@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/datapointchris/ifiles/auth"
 	"github.com/datapointchris/ifiles/config"
@@ -141,40 +139,14 @@ func chooseSource(cmd *cobra.Command, cfg *config.Config, sources []filebrowser.
 	return fmt.Errorf("server has %d sources; re-run with --source to pick one: %s", len(sources), strings.Join(names, ", "))
 }
 
-// readToken takes the token from stdin or a hidden prompt. A prompt is only
-// offered on a TTY: prompting a non-interactive caller would block on a stdin
-// that never closes, leaving it with no output and no exit code.
+// readToken takes the token from stdin or a hidden prompt.
 func readToken(cmd *cobra.Command, fromStdin bool) (string, error) {
-	stdin := int(os.Stdin.Fd())
-	interactive := !fromStdin && !noInput && term.IsTerminal(stdin)
-
-	if !interactive {
-		if noInput && !fromStdin {
-			return "", fmt.Errorf("--no-input given; pass the token on stdin with `ifiles auth login -`")
-		}
-		data, err := readAllStdin()
-		if err != nil {
-			return "", err
-		}
-		token := strings.TrimSpace(data)
-		if token == "" {
-			return "", fmt.Errorf("no token on stdin")
-		}
-		return token, nil
-	}
-
-	infof(cmd, "Paste the API token from the web UI (Settings, API tokens).")
-	writef(cmd.ErrOrStderr(), "Token: ")
-	raw, err := term.ReadPassword(stdin)
-	writef(cmd.ErrOrStderr(), "\n")
-	if err != nil {
-		return "", err
-	}
-	token := strings.TrimSpace(string(raw))
-	if token == "" {
-		return "", fmt.Errorf("no token entered")
-	}
-	return token, nil
+	return readSecret(cmd, secretPrompt{
+		Lead:    "Paste the API token from the web UI (Settings, API tokens).",
+		Label:   "Token: ",
+		Missing: "no token given",
+		NoInput: "--no-input given; pass the token on stdin with `ifiles auth login -`",
+	}, fromStdin)
 }
 
 func init() {

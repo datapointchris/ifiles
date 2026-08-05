@@ -2,6 +2,7 @@ package filebrowser
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -38,6 +39,11 @@ type recordingServer struct {
 	lastAuth   string
 	body       string
 	status     int
+	// captureBody, when set, is decoded from the request body. Routes that take
+	// their arguments in JSON rather than in the query string are otherwise
+	// unassertable, and the fields those bodies omit are as load-bearing as the
+	// ones they carry.
+	captureBody any
 }
 
 func newRecordingClient(t *testing.T, backend *recordingServer) *Client {
@@ -48,6 +54,9 @@ func newRecordingClient(t *testing.T, backend *recordingServer) *Client {
 		backend.lastPath = r.URL.Path
 		backend.lastMethod = r.Method
 		backend.lastAuth = r.Header.Get("Authorization")
+		if backend.captureBody != nil {
+			_ = json.NewDecoder(r.Body).Decode(backend.captureBody)
+		}
 
 		status := backend.status
 		if status == 0 {

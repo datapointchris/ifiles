@@ -76,6 +76,26 @@ deployed version to a range without shell access to the container.
   move that did not happen.
 - **The token goes in the `Authorization` header only.** The server also accepts
   `?auth=<token>`, which would put the secret in Traefik's access log.
+- **A 403 on the share routes means three unrelated things**, and the status
+  alone cannot say which. A missing `share` permission comes from
+  `withPermShareHelper`, which returns the status with a *nil error* — so
+  `wrapHandler` writes no body at all. Every other 403 there (path not found,
+  private source) comes from the handler, which returns an error and therefore a
+  message. An empty message on a 403 is that exact discriminator, not a
+  heuristic, and `IsMissingPermission` is the only thing standing between the
+  user and a bare `403 Forbidden` with nothing to act on.
+- **`POST /share` takes `expires` as a string number beside a separate `unit`**,
+  and the switch falls through to hours for anything it does not recognize. A
+  misspelled unit therefore does not error — it silently multiplies the lifetime
+  by 24. `CreateShare` always sends seconds so there is one spelling to get
+  right, and clamps to 1 so a sub-second duration cannot round to 0, which the
+  server would accept as a link that expired before it existed.
+- **`DELETE /share` answers 400 for a hash it cannot find**, not 404: the lookup
+  fails before the handler decides anything is missing. `IsNotFound` never fires.
+- **A share's path comes back scoped and slash-suffixed.** The server joins the
+  account's scope on and calls `AddTrailingSlashIfNotExists` — even for a file —
+  so a share created for `/report.pdf` lists as `/report.pdf/`. Round-tripping
+  that path into a resource call is the mistake it invites.
 
 ## Shell completion
 

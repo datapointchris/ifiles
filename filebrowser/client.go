@@ -100,10 +100,33 @@ func IsNotFound(err error) bool { return statusIs(err, http.StatusNotFound) }
 // turn this into the advice to pass --override rather than surfacing a 409.
 func IsConflict(err error) bool { return statusIs(err, http.StatusConflict) }
 
+// IsBadRequest reports whether the server rejected the request itself. Worth a
+// helper because Quantum uses it where a 404 would be expected: a share hash it
+// cannot find is a 400, since the lookup fails before the handler decides
+// anything is missing.
+func IsBadRequest(err error) bool { return statusIs(err, http.StatusBadRequest) }
+
 // IsUnauthorized reports whether the token was rejected, which for a long-lived
 // API token almost always means it expired and needs re-minting.
 func IsUnauthorized(err error) bool {
 	return statusIs(err, http.StatusUnauthorized) || statusIs(err, http.StatusForbidden)
+}
+
+// IsMissingPermission reports whether the server accepted the token and refused
+// the action because the account lacks a permission.
+//
+// The status alone cannot say that. Quantum answers 403 for several unrelated
+// things — a missing permission, a private source, a path that does not exist —
+// and only the permission check comes from the middleware, which returns the
+// status with no error value and so writes no body at all. An empty message on a
+// 403 is therefore the tell, and it is exact rather than a heuristic: every
+// handler that returns 403 itself returns an error to go with it.
+func IsMissingPermission(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.Status == http.StatusForbidden && apiErr.Message == ""
 }
 
 // newRequest builds an authenticated request. The token travels only in the

@@ -214,6 +214,42 @@ func completeSources(cmd *cobra.Command, _ []string, toComplete string) ([]strin
 	return names, cobra.ShellCompDirectiveNoFileComp
 }
 
+// completeShareHashes completes `shares rm` from the account's live links.
+//
+// Uncached, unlike the path completers. A share list is a handful of rows rather
+// than a directory of thousands, and the one thing a stale answer here would do
+// is offer a hash that was revoked in the previous command — which is precisely
+// the sequence someone completing a revocation is in the middle of.
+func completeShareHashes(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	client, _, err := newClient()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), completionTimeout)
+	defer cancel()
+
+	shares, err := client.Shares(ctx)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	candidates := make([]string, 0, len(shares))
+	for _, share := range shares {
+		if !strings.HasPrefix(share.Hash, toComplete) {
+			continue
+		}
+		// The path is the description because the hash is unreadable by design:
+		// what it points at is the only way to tell two of them apart.
+		candidates = append(candidates, share.Hash+"\t"+share.Path)
+	}
+	return candidates, cobra.ShellCompDirectiveNoFileComp
+}
+
 // mustCompleteFlag attaches a completion function to a flag, panicking if that
 // flag does not exist. Cobra reports the mismatch as an error a caller is free to
 // discard, which turns a renamed flag into a completion that silently stops
@@ -243,6 +279,9 @@ func init() {
 	cpCmd.ValidArgsFunction = completeTwoRemotePaths
 	lsCmd.ValidArgsFunction = completeRemoteDirectory
 	mkdirCmd.ValidArgsFunction = completeRemoteDirectory
+	sharesCreateCmd.ValidArgsFunction = completeRemotePath
+	sharesListCmd.ValidArgsFunction = completeRemotePath
+	sharesRmCmd.ValidArgsFunction = completeShareHashes
 
 	rootCmd.SetCompletionCommandGroupID(groupTool)
 }

@@ -4,10 +4,11 @@ A Go CLI for [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser),
 out of `files.ichrisbirch.com` from a terminal instead of through the browser UI.
 
 ```bash
-ifiles ls /photos              # what is in a remote directory
-ifiles get /photos/raw.cr2     # download
-ifiles put video.mkv /media    # upload, chunked
-ifiles search invoice          # find a file without opening the browser
+ifiles ls /photos                          # what is in a remote directory
+ifiles get /photos/raw.cr2                 # download
+ifiles put video.mkv /media                # upload, chunked
+ifiles search invoice                      # find a file without opening the browser
+ifiles shares create /docs/contract.pdf    # hand it to someone with no account
 ```
 
 ## Why it exists
@@ -118,6 +119,29 @@ check the server makes.
 directory download does not: the server generates the archive as it streams, so there is nothing to
 seek to.
 
+## Share links
+
+A share link hands a file or directory to someone with no account here:
+
+```bash
+ifiles shares create /docs/contract.pdf --expires 7d --password
+ifiles shares list
+ifiles shares rm https://files.ichrisbirch.com/public/share/T7bQ3xkLm2
+```
+
+The URL is the only thing on stdout, so it pipes straight into `pbcopy` or a message. `--expires`
+takes a window rather than a date — `7d`, `12h`, `90m` — and without it the link never expires.
+`--password` reads from a hidden prompt or from stdin, never from argv. A directory shares the whole
+subtree, with the server building the archive when the recipient downloads it.
+
+`shares list` prints the URL rather than the hash, because that column is both the thing you came for
+and the handle: it pastes back into `shares rm`, which also takes a bare hash or a download URL. An
+expired link still appears — the server keeps it — marked `expired`, and a link whose file has since
+been deleted is marked `gone`, since it still resolves and 404s for whoever holds it.
+
+This needs the **`share` permission**, which is separate from `api` and from `admin`. Without it the
+server refuses with a bare 403 carrying no message at all, so `ifiles` supplies the explanation.
+
 ## What this deliberately does not do
 
 - **No `sync` or `mirror`.** Syncthing already does two-way sync, correctly.
@@ -147,3 +171,6 @@ is the image the deployment pins. The published documentation is wrong in places
 | Upload is multipart form data | Upload is the raw request body, with `X-File-Chunk-Offset` and `X-File-Total-Size` headers |
 | — | `GET /api/resources/download` takes repeated `?file=`, not the `?path=` every other route uses |
 | — | `GET /api/settings/sources` exists in the router but carries no swagger annotation, so it is absent from the spec |
+| — | `POST /api/share` takes `expires` as a *string* number plus a separate `unit`, and falls through to hours for any unit it does not recognize — so a typo lengthens the link rather than erroring |
+| — | `DELETE /api/share` answers 400, not 404, for a hash that does not exist |
+| — | A share's permission failure is a 403 with **no body**, while every other 403 on those routes carries the handler's own message — which is what makes the two tellable apart |
