@@ -97,6 +97,22 @@ deployed version to a range without shell access to the container.
   so a share created for `/report.pdf` lists as `/report.pdf/`. Round-tripping
   that path into a resource call is the mistake it invites.
 
+## Token lifetime is read locally, and there is no `tokens` command
+
+`GET /api/auth/token/list` returns **every token's full JWT**, and its permission
+claim is never enforced: each check in the router reads `d.user.Permissions` off
+the user record, so a token minted with a narrow set still acts with the whole
+account's rights. Neither fact is worth a CLI surface — minting and revoking are
+annual, and the first token has to come from the web UI regardless.
+
+What does recur is a token expiring silently. `auth.ExpiresAt` decodes the stored
+JWT's `exp` claim with no network call and `auth status` prints it, warning under
+a fortnight. The signature is deliberately not verified: proving the server minted
+it is the server's job on every request, and a client rejecting its own token would
+only hide the date. Note `base64.RawURLEncoding` — a JWT drops the padding, so
+`URLEncoding` fails on most real tokens and succeeds on the occasional one whose
+payload length happens to be a multiple of three.
+
 ## Shell completion
 
 Remote paths complete over the API, so `ifiles __complete get /pho` is a real request made

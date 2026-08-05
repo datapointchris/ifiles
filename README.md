@@ -158,6 +158,14 @@ server refuses with a bare 403 carrying no message at all, so `ifiles` supplies 
 
   Good for browsing and small files. It cannot upload over 100 MB — that is what `ifiles put` is for.
 - **No user administration.** That is the server binary's job, and a once-a-year task.
+- **No token management.** `POST`/`DELETE /api/auth/token` exist and an API token may call them, but
+  minting and revoking happen about once a year, and the *first* token has to come from the web UI
+  regardless — so a `tokens` namespace would duplicate a page nobody can avoid visiting.
+
+  The one question that does recur is whether this machine's token is about to expire silently, and
+  that needs no API at all: the token is a JWT sitting in the keyring, so `ifiles auth status` reads
+  its `exp` claim locally and prints the date, warning when under a fortnight remains. The server's
+  own `X-Renew-Token` header fires thirty minutes out, which on a year-long token is no warning.
 - **No TUI.** A browser UI already exists for browsing.
 
 ## Notes on the API
