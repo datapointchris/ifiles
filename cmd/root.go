@@ -68,6 +68,11 @@ func run() int {
 		if !errors.Is(err, cobracmd.ErrReported) {
 			fmt.Fprintln(os.Stderr, err)
 		}
+		// 2 says the command line was wrong rather than the run, which is the
+		// only failure a caller should retry with different arguments.
+		if errors.Is(err, cobracmd.ErrUsage) {
+			return 2
+		}
 		return 1
 	}
 	return 0
