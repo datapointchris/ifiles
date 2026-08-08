@@ -39,8 +39,8 @@ the server — there is no separate step to trigger, and nothing is staged local
 first.
 
 A single-file download resumes: bytes land in a ".ifilespart" file that is renamed
-into place at the end, and re-running continues from its length using an HTTP
-range request. An archive cannot resume, because the server generates it as it
+into place at the end, and re-running asks the server only for the bytes past what
+is already there. An archive cannot resume, because the server generates it as it
 streams and has nothing to seek to.`,
 	Example: `  ifiles get /photos/raw.cr2              into the current directory
   ifiles get /photos/raw.cr2 ~/Pictures  into a directory

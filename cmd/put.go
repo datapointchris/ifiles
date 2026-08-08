@@ -28,16 +28,16 @@ var putCmd = &cobra.Command{
 	Long: `Uploads a local path, recursively for a directory.
 
 Every upload is chunked, not only large ones. The tunnel in front of this server
-caps a request body at 100 MB, so an unchunked upload of a large file fails with a
-413 that no retry clears — and WebDAV, which rclone would use, has no chunking at
-all. This command is the only way a large file gets through.
+caps a request body at 100 MB, so an unchunked upload of a large file is rejected
+outright and no retry clears it — and WebDAV, which rclone would use, has no
+chunking at all. This command is the only way a large file gets through.
 
 Interrupting is safe. On Ctrl-C the server is told to keep what it has before the
 transfer is aborted, the offset is recorded locally, and re-running the same
 command continues from there. The offset has to be remembered on this side because
-no endpoint reports it; a local file that changed between attempts invalidates the
-resume, since the server would otherwise write new bytes into the middle of an old
-upload.`,
+the server does not report it; a local file that changed between attempts
+invalidates the resume, since the server would otherwise write new bytes into the
+middle of an old upload.`,
 	Example: `  ifiles put video.mkv                 into the configured remote directory
   ifiles put video.mkv /media          into a directory
   ifiles put video.mkv /media/new.mkv  under a different name

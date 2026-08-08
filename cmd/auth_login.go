@@ -17,8 +17,8 @@ var authLoginCmd = &cobra.Command{
 	Long: `Stores an API token and records the server URL.
 
 Mint the token in the web UI first: Settings, then API tokens. The account needs
-the "api" permission for that page to work — without it the server answers 403,
-because creating a token is itself an API-permissioned action.
+the "api" permission for that page to work — without it the page refuses, because
+creating a token is itself an api-permissioned action.
 
 The token is read from a hidden prompt, or from stdin when given "-", so it never
 appears in shell history or in ps output. Login then calls the server to verify
