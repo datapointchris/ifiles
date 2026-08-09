@@ -9,17 +9,20 @@ import (
 	"github.com/datapointchris/ifiles/filebrowser"
 )
 
-var catCmd = &cobra.Command{
-	Use:     "cat <path>",
-	GroupID: groupRead,
-	Short:   "Stream a remote file to stdout",
+var readCmd = &cobra.Command{
+	Use:        "read <path>",
+	GroupID:    groupRead,
+	SuggestFor: []string{"cat"},
+	Short:      "Stream a remote file to stdout",
 	Long: `Writes a remote file to stdout, for piping.
 
 Nothing else is written to stdout, so the output is exactly the file — progress and
-diagnostics go to stderr, which is what makes this safe on the left of a pipe.`,
-	Example: `  ifiles cat /notes/todo.md
-  ifiles cat /logs/app.log | rg ERROR
-  ifiles cat /data/export.csv > local.csv`,
+diagnostics go to stderr, which is what makes this safe on the left of a pipe.
+
+This is the file's contents, not a description of it.`,
+	Example: `  ifiles read /notes/todo.md
+  ifiles read /logs/app.log | rg ERROR
+  ifiles read /data/export.csv > local.csv`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()
@@ -39,7 +42,7 @@ diagnostics go to stderr, which is what makes this safe on the left of a pipe.`,
 			return err
 		}
 		if info.IsDir() {
-			return fmt.Errorf("%s is a directory; use `ifiles get %s` to download it", remotePath, remotePath)
+			return fmt.Errorf("%s is a directory; use `ifiles download %s` to fetch it", remotePath, remotePath)
 		}
 
 		download, err := client.Download(ctx, filebrowser.DownloadRequest{Paths: []string{remotePath}})
@@ -54,5 +57,5 @@ diagnostics go to stderr, which is what makes this safe on the left of a pipe.`,
 }
 
 func init() {
-	rootCmd.AddCommand(catCmd)
+	rootCmd.AddCommand(readCmd)
 }

@@ -169,7 +169,7 @@ func TestCompleteSubcommandListsRemotePathsOverTheAPI(t *testing.T) {
 	}))
 	defer server.Close()
 
-	output := completeThroughRootCmd(t, server.URL, "__complete", "get", "/pho")
+	output := completeThroughRootCmd(t, server.URL, "__complete", "download", "/pho")
 
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) < 2 {
@@ -200,7 +200,7 @@ func TestCompleteSubcommandStaysSilentWhenTheServerFails(t *testing.T) {
 	}))
 	defer server.Close()
 
-	output := completeThroughRootCmd(t, server.URL, "__complete", "get", "/pho")
+	output := completeThroughRootCmd(t, server.URL, "__complete", "download", "/pho")
 
 	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
 		if line == "" || strings.HasPrefix(line, ":") {

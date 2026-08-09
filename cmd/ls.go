@@ -17,18 +17,19 @@ var (
 )
 
 var lsCmd = &cobra.Command{
-	Use:     "ls [path]",
-	GroupID: groupRead,
-	Short:   "List a remote directory",
+	Use:        "list [path]",
+	GroupID:    groupRead,
+	SuggestFor: []string{"ls", "dir"},
+	Short:      "List a remote directory",
 	Long: `Lists the contents of a remote directory, folders first.
 
 The path is absolute from the source root; omitted, it lists the root. Hidden
 entries are excluded unless -a is given, matching the shell rather than the web
 UI's per-account setting.`,
-	Example: `  ifiles ls                     the source root
-  ifiles ls /photos/2026        one directory
-  ifiles ls /photos -l          with sizes and modification times
-  ifiles ls /photos --json      for a script`,
+	Example: `  ifiles list                     the source root
+  ifiles list /photos/2026        one directory
+  ifiles list /photos -l          with sizes and modification times
+  ifiles list /photos --json      for a script`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()

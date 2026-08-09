@@ -161,7 +161,7 @@ otherwise a file token outlives the logout that was meant to remove it. The
 keyringless path is reproducible without WSL:
 
 ```bash
-GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles ls /
+GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles list /
 ```
 
 ## Where it runs

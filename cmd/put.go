@@ -22,9 +22,10 @@ var (
 )
 
 var putCmd = &cobra.Command{
-	Use:     "put <local> [remote]",
-	GroupID: groupAct,
-	Short:   "Upload a file or directory",
+	Use:        "upload <local> [remote]",
+	GroupID:    groupAct,
+	SuggestFor: []string{"put", "push", "send"},
+	Short:      "Upload a file or directory",
 	Long: `Uploads a local path, recursively for a directory.
 
 Every upload is chunked, not only large ones. The tunnel in front of this server
@@ -38,11 +39,11 @@ command continues from there. The offset has to be remembered on this side becau
 the server does not report it; a local file that changed between attempts
 invalidates the resume, since the server would otherwise write new bytes into the
 middle of an old upload.`,
-	Example: `  ifiles put video.mkv                 into the configured remote directory
-  ifiles put video.mkv /media          into a directory
-  ifiles put video.mkv /media/new.mkv  under a different name
-  ifiles put ~/photos /backup          a whole tree, recursively
-  ifiles put big.iso --chunk-size 8MiB smaller chunks over a flaky link`,
+	Example: `  ifiles upload video.mkv                 into the configured remote directory
+  ifiles upload video.mkv /media          into a directory
+  ifiles upload video.mkv /media/new.mkv  under a different name
+  ifiles upload ~/photos /backup          a whole tree, recursively
+  ifiles upload big.iso --chunk-size 8MiB smaller chunks over a flaky link`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, cfg, err := newClient()

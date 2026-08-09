@@ -29,9 +29,10 @@ var (
 const partialSuffix = ".ifilespart"
 
 var getCmd = &cobra.Command{
-	Use:     "get <remote> [local]",
-	GroupID: groupRead,
-	Short:   "Download a file or directory",
+	Use:        "download <remote> [local]",
+	GroupID:    groupRead,
+	SuggestFor: []string{"get", "fetch", "pull"},
+	Short:      "Download a file or directory",
 	Long: `Downloads a remote path.
 
 A file arrives as itself. A directory arrives as an archive, built and streamed by
@@ -42,11 +43,11 @@ A single-file download resumes: bytes land in a ".ifilespart" file that is renam
 into place at the end, and re-running asks the server only for the bytes past what
 is already there. An archive cannot resume, because the server generates it as it
 streams and has nothing to seek to.`,
-	Example: `  ifiles get /photos/raw.cr2              into the current directory
-  ifiles get /photos/raw.cr2 ~/Pictures  into a directory
-  ifiles get /photos/raw.cr2 shot.cr2    under a different name
-  ifiles get /photos --archive tar.gz    a whole directory as a tarball
-  ifiles get /notes/todo.md -            to stdout, for piping`,
+	Example: `  ifiles download /photos/raw.cr2              into the current directory
+  ifiles download /photos/raw.cr2 ~/Pictures  into a directory
+  ifiles download /photos/raw.cr2 shot.cr2    under a different name
+  ifiles download /photos --archive tar.gz    a whole directory as a tarball
+  ifiles download /notes/todo.md -            to stdout, for piping`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()

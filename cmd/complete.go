@@ -273,7 +273,7 @@ func init() {
 	// read without opening eight files.
 	getCmd.ValidArgsFunction = completeRemoteThenLocal
 	putCmd.ValidArgsFunction = completeLocalThenRemote
-	catCmd.ValidArgsFunction = completeRemotePath
+	readCmd.ValidArgsFunction = completeRemotePath
 	rmCmd.ValidArgsFunction = completeRemotePath
 	mvCmd.ValidArgsFunction = completeTwoRemotePaths
 	cpCmd.ValidArgsFunction = completeTwoRemotePaths

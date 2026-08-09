@@ -4,9 +4,10 @@ A Go CLI for [FileBrowser Quantum](https://github.com/gtsteffaniak/filebrowser),
 out of `files.ichrisbirch.com` from a terminal instead of through the browser UI.
 
 ```bash
-ifiles ls /photos                          # what is in a remote directory
-ifiles get /photos/raw.cr2                 # download
-ifiles put video.mkv /media                # upload, chunked
+ifiles list /photos                        # what is in a remote directory
+ifiles download /photos/raw.cr2            # fetch one file
+ifiles upload video.mkv /media             # send one, chunked
+ifiles read /notes/todo.md                 # print a file's contents, for piping
 ifiles search invoice                      # find a file without opening the browser
 ifiles shares create /docs/contract.pdf    # hand it to someone with no account
 ```
@@ -34,10 +35,10 @@ Remote paths tab-complete against the server, so a long filename is a Tab rather
 the web UI:
 
 ```bash
-ifiles get /photos/2026-07-<TAB>
+ifiles download /photos/2026-07-<TAB>
 ```
 
-`get`, `cat`, `rm`, `mv`, `cp`, and `put`'s remote argument complete any entry; `ls` and `mkdir`
+`download`, `read`, `delete`, `move`, `copy`, and `upload`'s remote argument complete any entry; `list` and `mkdir`
 complete only directories, since a file in either position can only produce a failed command. A
 directory arrives with a trailing slash and no trailing space, so a second Tab descends into it. Local
 positions — `put`'s first argument, `get`'s second — fall through to the shell's own file completion,
@@ -156,7 +157,7 @@ server refuses with a bare 403 carrying no message at all, so `ifiles` supplies 
   pass = <API token>       # obscured via `rclone obscure`
   ```
 
-  Good for browsing and small files. It cannot upload over 100 MB — that is what `ifiles put` is for.
+  Good for browsing and small files. It cannot upload over 100 MB — that is what `ifiles upload` is for.
 - **No user administration.** That is the server binary's job, and a once-a-year task.
 - **No token management.** `POST`/`DELETE /api/auth/token` exist and an API token may call them, but
   minting and revoking happen about once a year, and the *first* token has to come from the web UI

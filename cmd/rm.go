@@ -15,16 +15,17 @@ import (
 var rmForce bool
 
 var rmCmd = &cobra.Command{
-	Use:     "rm <path>",
-	GroupID: groupAct,
-	Short:   "Delete a remote file or directory",
+	Use:        "delete <path>",
+	GroupID:    groupAct,
+	SuggestFor: []string{"rm", "remove", "del"},
+	Short:      "Delete a remote file or directory",
 	Long: `Deletes a remote path.
 
 A directory takes its contents with it, so the confirmation names how many entries
 are about to go. On a terminal it asks; without one it refuses unless --force is
 given, rather than prompting into a stdin that will never answer.`,
-	Example: `  ifiles rm /photos/blurry.jpg
-  ifiles rm /tmp/scratch --force   no confirmation, for a script`,
+	Example: `  ifiles delete /photos/blurry.jpg
+  ifiles delete /tmp/scratch --force   no confirmation, for a script`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()

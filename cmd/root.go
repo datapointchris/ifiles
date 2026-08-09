@@ -30,22 +30,23 @@ var rootCmd = &cobra.Command{
 	Short: "Move files in and out of files.ichrisbirch.com from the terminal",
 	Long: `ifiles is a client for a FileBrowser Quantum server.
 
-Commands follow the shape: ifiles VERB PATH — the verbs are the ones a shell
-already taught you, so ls, cat, mkdir, mv, cp, and rm mean here what they mean
-there, and get and put are the two that cross the network.
+Commands follow the shape: ifiles VERB PATH, and the verb says what it does in
+plain words — upload, download, list, read, copy, move, delete. Nothing here
+requires remembering which of get and put goes which way.
 
 One rule: the remote path comes first for a download and second for an upload.
-"ifiles get REMOTE [LOCAL]" pulls, "ifiles put LOCAL [REMOTE]" pushes, so the
-argument nearest the verb is always the thing being read.
+"ifiles download REMOTE [LOCAL]" pulls, "ifiles upload LOCAL [REMOTE]" pushes,
+so the argument nearest the verb is always the thing being read.
 
 Remote paths are absolute from the source root, and the source, server, and
 chunk size are inferred from config rather than typed. Every level is
 self-documenting: run any partial command with no arguments or --help to see
 what comes next.`,
-	Example: `  ifiles ls /photos              what is in a remote directory
-  ifiles get /photos/raw.cr2     download one file to the current directory
-  ifiles put video.mkv /media    upload, chunked so the tunnel cannot fail it
-  ifiles search invoice          find a file without opening the browser`,
+	Example: `  ifiles list /photos                 what is in a remote directory
+  ifiles download /photos/raw.cr2     fetch one file into the current directory
+  ifiles upload video.mkv /media      send one, chunked so the tunnel cannot fail it
+  ifiles read /notes/todo.md          print a file's contents, for piping
+  ifiles search invoice               find a file without opening the browser`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 }
