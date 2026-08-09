@@ -29,7 +29,7 @@ everyone's, because the server branches on the user record rather than on a
 parameter. With a path it is the links pointing at that path.
 
 The URL is the last column because it is what you came for, and because it is
-also the handle: it pastes straight back into "ifiles shares rm". An expired link
+also the handle: it pastes straight back into "ifiles shares delete". An expired link
 is still listed, since the server keeps it in storage, and is marked as expired
 rather than hidden. A link whose file has since been deleted is marked "gone" —
 it still resolves, and 404s for whoever was sent it.`,

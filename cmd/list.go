@@ -16,7 +16,7 @@ var (
 	lsLong  bool
 )
 
-var lsCmd = &cobra.Command{
+var listCmd = &cobra.Command{
 	Use:        "list [path]",
 	GroupID:    groupRead,
 	SuggestFor: []string{"ls", "dir"},
@@ -97,7 +97,7 @@ UI's per-account setting.`,
 }
 
 // name marks directories with a trailing slash, which is the handle a caller
-// pastes back into the next command — `ifiles ls /photos/2026/` works, and the
+// pastes back into the next command — `ifiles list /photos/2026/` works, and the
 // slash is what says it will.
 func name(entry filebrowser.Item) string {
 	if entry.IsDir() {
@@ -107,9 +107,9 @@ func name(entry filebrowser.Item) string {
 }
 
 func init() {
-	lsCmd.Flags().BoolVar(&lsJSON, "json", false, "Output entries as JSON to stdout")
-	lsCmd.Flags().IntVarP(&lsLimit, "limit", "n", 0, "maximum entries to list (0 for all)")
-	lsCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
-	lsCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
-	rootCmd.AddCommand(lsCmd)
+	listCmd.Flags().BoolVar(&lsJSON, "json", false, "Output entries as JSON to stdout")
+	listCmd.Flags().IntVarP(&lsLimit, "limit", "n", 0, "maximum entries to list (0 for all)")
+	listCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
+	listCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
+	rootCmd.AddCommand(listCmd)
 }

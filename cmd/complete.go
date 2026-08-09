@@ -37,7 +37,7 @@ func completeRemotePath(cmd *cobra.Command, args []string, toComplete string) ([
 }
 
 // completeRemoteDirectory completes a position where a file would be rejected:
-// `ls` on a file is an error, and `mkdir` names one that does not exist yet, so
+// `list` on a file is an error, and `mkdir` names one that does not exist yet, so
 // what is being completed there is its parent.
 func completeRemoteDirectory(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) > 0 {
@@ -46,7 +46,7 @@ func completeRemoteDirectory(cmd *cobra.Command, args []string, toComplete strin
 	return completeRemote(cmd, toComplete, directoriesOnly)
 }
 
-// completeTwoRemotePaths completes both sides of mv and cp, which never touch the
+// completeTwoRemotePaths completes both sides of move and copy, which never touch the
 // local filesystem.
 func completeTwoRemotePaths(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) > 1 {
@@ -55,7 +55,7 @@ func completeTwoRemotePaths(cmd *cobra.Command, args []string, toComplete string
 	return completeRemote(cmd, toComplete, allEntries)
 }
 
-// completeRemoteThenLocal completes `get <remote> [local]`: the remote path from
+// completeRemoteThenLocal completes `download <remote> [local]`: the remote path from
 // the server, and the local destination by handing the position back to the shell.
 func completeRemoteThenLocal(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	switch len(args) {
@@ -68,7 +68,7 @@ func completeRemoteThenLocal(cmd *cobra.Command, args []string, toComplete strin
 	}
 }
 
-// completeLocalThenRemote completes `put <local> [remote]`, the one command whose
+// completeLocalThenRemote completes `upload <local> [remote]`, the one command whose
 // argument order puts the local path first.
 func completeLocalThenRemote(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	switch len(args) {
@@ -76,7 +76,7 @@ func completeLocalThenRemote(cmd *cobra.Command, args []string, toComplete strin
 		return nil, cobra.ShellCompDirectiveDefault
 	case 1:
 		// Any entry, not only directories: the destination may name the remote file
-		// itself, which is what `put draft.md /docs/final.md` relies on.
+		// itself, which is what `upload draft.md /docs/final.md` relies on.
 		return completeRemote(cmd, toComplete, allEntries)
 	default:
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -214,7 +214,7 @@ func completeSources(cmd *cobra.Command, _ []string, toComplete string) ([]strin
 	return names, cobra.ShellCompDirectiveNoFileComp
 }
 
-// completeShareHashes completes `shares rm` from the account's live links.
+// completeShareHashes completes `shares delete` from the account's live links.
 //
 // Uncached, unlike the path completers. A share list is a handful of rows rather
 // than a directory of thousands, and the one thing a stale answer here would do
@@ -271,17 +271,17 @@ func init() {
 	// because every command variable is fully constructed before any init runs.
 	// One place for the whole positional surface means what completes where can be
 	// read without opening eight files.
-	getCmd.ValidArgsFunction = completeRemoteThenLocal
-	putCmd.ValidArgsFunction = completeLocalThenRemote
+	downloadCmd.ValidArgsFunction = completeRemoteThenLocal
+	uploadCmd.ValidArgsFunction = completeLocalThenRemote
 	readCmd.ValidArgsFunction = completeRemotePath
-	rmCmd.ValidArgsFunction = completeRemotePath
-	mvCmd.ValidArgsFunction = completeTwoRemotePaths
-	cpCmd.ValidArgsFunction = completeTwoRemotePaths
-	lsCmd.ValidArgsFunction = completeRemoteDirectory
+	deleteCmd.ValidArgsFunction = completeRemotePath
+	moveCmd.ValidArgsFunction = completeTwoRemotePaths
+	copyCmd.ValidArgsFunction = completeTwoRemotePaths
+	listCmd.ValidArgsFunction = completeRemoteDirectory
 	mkdirCmd.ValidArgsFunction = completeRemoteDirectory
 	sharesCreateCmd.ValidArgsFunction = completeRemotePath
 	sharesListCmd.ValidArgsFunction = completeRemotePath
-	sharesRmCmd.ValidArgsFunction = completeShareHashes
+	sharesDeleteCmd.ValidArgsFunction = completeShareHashes
 
 	rootCmd.SetCompletionCommandGroupID(groupTool)
 }

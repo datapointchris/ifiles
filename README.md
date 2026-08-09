@@ -38,11 +38,12 @@ the web UI:
 ifiles download /photos/2026-07-<TAB>
 ```
 
-`download`, `read`, `delete`, `move`, `copy`, and `upload`'s remote argument complete any entry; `list` and `mkdir`
-complete only directories, since a file in either position can only produce a failed command. A
-directory arrives with a trailing slash and no trailing space, so a second Tab descends into it. Local
-positions — `put`'s first argument, `get`'s second — fall through to the shell's own file completion,
-and `--source` completes from the server's source list.
+`download`, `read`, `delete`, `move`, `copy`, and `upload`'s remote argument complete any
+entry; `list` and `mkdir` complete only directories, since a file in either position can only
+produce a failed command. A directory arrives with a trailing slash and no trailing space, so a
+second Tab descends into it. Local positions — `upload`'s first argument, `download`'s second —
+fall through to the shell's own file completion, and `--source` completes from the server's
+source list.
 
 Install the script the way every other completion in `~/dotfiles` is installed:
 
@@ -50,7 +51,7 @@ Install the script the way every other completion in `~/dotfiles` is installed:
 ifiles completion zsh > "$XDG_CACHE_HOME/zsh/completions/ifiles.zsh"
 ```
 
-Each Tab is a real request: the shell runs `ifiles __complete get /photos/` as a fresh process, so
+Each Tab is a real request: the shell runs `ifiles __complete download /photos/` as a fresh process, so
 nothing can be held in memory between them. Listings are cached for ten seconds at
 `$XDG_CACHE_HOME/ifiles/listings.json` — long enough that tabbing through one directory hits the
 server once, short enough that a file uploaded by the previous command shows up in the next
@@ -94,7 +95,7 @@ TOML at `$XDG_CONFIG_HOME/ifiles/config.toml`, written by `auth login`:
 ```toml
 url = "https://files.ichrisbirch.com"
 source = "files"
-remote_dir = "/inbox"   # where `put` sends things by default
+remote_dir = "/inbox"   # where `upload` sends things by default
 chunk_size = "32MiB"    # must stay under the 100 MB request cap
 ```
 
@@ -127,7 +128,7 @@ A share link hands a file or directory to someone with no account here:
 ```bash
 ifiles shares create /docs/contract.pdf --expires 7d --password
 ifiles shares list
-ifiles shares rm https://files.ichrisbirch.com/public/share/T7bQ3xkLm2
+ifiles shares delete https://files.ichrisbirch.com/public/share/T7bQ3xkLm2
 ```
 
 The URL is the only thing on stdout, so it pipes straight into `pbcopy` or a message. `--expires`
@@ -136,7 +137,7 @@ takes a window rather than a date — `7d`, `12h`, `90m` — and without it the 
 subtree, with the server building the archive when the recipient downloads it.
 
 `shares list` prints the URL rather than the hash, because that column is both the thing you came for
-and the handle: it pastes back into `shares rm`, which also takes a bare hash or a download URL. An
+and the handle: it pastes back into `shares delete`, which also takes a bare hash or a download URL. An
 expired link still appears — the server keeps it — marked `expired`, and a link whose file has since
 been deleted is marked `gone`, since it still resolves and 404s for whoever holds it.
 

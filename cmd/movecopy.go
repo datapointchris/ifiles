@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	mvOverride bool
-	cpOverride bool
+	moveOverride bool
+	copyOverride bool
 )
 
-var mvCmd = &cobra.Command{
+var moveCmd = &cobra.Command{
 	Use:        "move <src> <dst>",
 	GroupID:    groupAct,
 	SuggestFor: []string{"mv", "rename"},
@@ -29,11 +29,11 @@ directory means "into it".`,
   ifiles move /docs/draft.md /docs/final.md   rename in place`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return moveOrCopy(cmd, "move", args[0], args[1], mvOverride)
+		return moveOrCopy(cmd, "move", args[0], args[1], moveOverride)
 	},
 }
 
-var cpCmd = &cobra.Command{
+var copyCmd = &cobra.Command{
 	Use:        "copy <src> <dst>",
 	GroupID:    groupAct,
 	SuggestFor: []string{"cp"},
@@ -45,7 +45,7 @@ Like move, the data never travels through this client.`,
   ifiles copy /config/prod.yml /config/staging.yml`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return moveOrCopy(cmd, "copy", args[0], args[1], cpOverride)
+		return moveOrCopy(cmd, "copy", args[0], args[1], copyOverride)
 	},
 }
 
@@ -95,7 +95,7 @@ func pastTense(action string) string {
 }
 
 func init() {
-	mvCmd.Flags().BoolVar(&mvOverride, "override", false, "replace the destination if it exists")
-	cpCmd.Flags().BoolVar(&cpOverride, "override", false, "replace the destination if it exists")
-	rootCmd.AddCommand(mvCmd, cpCmd)
+	moveCmd.Flags().BoolVar(&moveOverride, "override", false, "replace the destination if it exists")
+	copyCmd.Flags().BoolVar(&copyOverride, "override", false, "replace the destination if it exists")
+	rootCmd.AddCommand(moveCmd, copyCmd)
 }

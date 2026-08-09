@@ -14,7 +14,7 @@ import (
 
 var rmForce bool
 
-var rmCmd = &cobra.Command{
+var deleteCmd = &cobra.Command{
 	Use:        "delete <path>",
 	GroupID:    groupAct,
 	SuggestFor: []string{"rm", "remove", "del"},
@@ -90,6 +90,6 @@ func confirmDelete(cmd *cobra.Command, remotePath string, info *filebrowser.List
 }
 
 func init() {
-	rmCmd.Flags().BoolVarP(&rmForce, "force", "f", false, "delete without confirmation")
-	rootCmd.AddCommand(rmCmd)
+	deleteCmd.Flags().BoolVarP(&rmForce, "force", "f", false, "delete without confirmation")
+	rootCmd.AddCommand(deleteCmd)
 }

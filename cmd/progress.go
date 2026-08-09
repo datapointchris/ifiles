@@ -14,7 +14,7 @@ const progressInterval = 200 * time.Millisecond
 
 // progress renders transfer progress to stderr, clipped to one line that is
 // rewritten in place. It goes to stderr because stdout is reserved for data —
-// `ifiles cat` piped into another program must not carry a progress bar.
+// `ifiles read` piped into another program must not carry a progress bar.
 type progress struct {
 	out     io.Writer
 	label   string

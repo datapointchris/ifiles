@@ -4,7 +4,7 @@ import "testing"
 
 // TestShareHashAcceptsEveryFormAShareIsKnownBy is what makes the listing usable
 // as input. The table prints the share URL rather than the hash, so a row that
-// could not be pasted back into `shares rm` would be a row you can read and not
+// could not be pasted back into `shares delete` would be a row you can read and not
 // act on.
 func TestShareHashAcceptsEveryFormAShareIsKnownBy(t *testing.T) {
 	t.Parallel()

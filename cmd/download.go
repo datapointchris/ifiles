@@ -28,7 +28,7 @@ var (
 // offset to continue from.
 const partialSuffix = ".ifilespart"
 
-var getCmd = &cobra.Command{
+var downloadCmd = &cobra.Command{
 	Use:        "download <remote> [local]",
 	GroupID:    groupRead,
 	SuggestFor: []string{"get", "fetch", "pull"},
@@ -249,12 +249,12 @@ func showProgress(cmd *cobra.Command) bool {
 }
 
 func init() {
-	getCmd.Flags().StringVar(&getArchive, "archive", "", "archive format for a directory: zip or tar.gz")
-	mustCompleteFlag(getCmd, "archive", cobra.FixedCompletions(
+	downloadCmd.Flags().StringVar(&getArchive, "archive", "", "archive format for a directory: zip or tar.gz")
+	mustCompleteFlag(downloadCmd, "archive", cobra.FixedCompletions(
 		[]string{filebrowser.ArchiveZip, filebrowser.ArchiveTarGz},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
-	getCmd.Flags().BoolVar(&getOverride, "override", false, "replace an existing local file")
-	getCmd.Flags().BoolVar(&getNoResume, "no-resume", false, "ignore a partial download and start over")
-	rootCmd.AddCommand(getCmd)
+	downloadCmd.Flags().BoolVar(&getOverride, "override", false, "replace an existing local file")
+	downloadCmd.Flags().BoolVar(&getNoResume, "no-resume", false, "ignore a partial download and start over")
+	rootCmd.AddCommand(downloadCmd)
 }

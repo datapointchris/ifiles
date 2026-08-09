@@ -7,7 +7,7 @@ import (
 )
 
 // usePad sizes the command column from the full `Use` string rather than the bare
-// command name. Cobra's default lists `get`; this lists `get <remote> [local]`,
+// command name. Cobra's default lists `download`; this lists `download <remote> [local]`,
 // so which side of a verb is remote and which is local is visible from the parent
 // screen instead of one drill-down away — and that asymmetry is the whole grammar
 // here.

@@ -14,7 +14,7 @@ var authLogoutCmd = &cobra.Command{
 	Long: `Removes the stored token, from the OS keyring and the fallback file both.
 
 The token stays valid on the server — this only forgets it locally. To stop it
-working, revoke it with "ifiles tokens rm" or in the web UI.`,
+working, revoke it in the web UI under Settings, then API tokens.`,
 	Example: `  ifiles auth logout`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {

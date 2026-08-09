@@ -6,9 +6,10 @@ import (
 	"github.com/datapointchris/ifiles/filebrowser"
 )
 
-var sharesRmCmd = &cobra.Command{
-	Use:   "rm <hash-or-url>",
-	Short: "Revoke a share link",
+var sharesDeleteCmd = &cobra.Command{
+	Use:        "delete <hash-or-url>",
+	SuggestFor: []string{"rm", "revoke"},
+	Short:      "Revoke a share link",
 	Long: `Revokes a share link so the URL stops working.
 
 Takes what a listing prints: the share URL pastes in whole, and so does a bare
@@ -17,9 +18,9 @@ pointed at is untouched, and only the link dies.
 
 There is no confirmation. A revoked link is recreated with one command, so the
 cost of getting this wrong is a new URL rather than lost data, which is the
-opposite of "ifiles rm".`,
-	Example: `  ifiles shares rm T7bQ3xkLm2
-  ifiles shares rm https://files.ichrisbirch.com/public/share/T7bQ3xkLm2`,
+opposite of "ifiles delete".`,
+	Example: `  ifiles shares delete T7bQ3xkLm2
+  ifiles shares delete https://files.ichrisbirch.com/public/share/T7bQ3xkLm2`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()
@@ -59,5 +60,5 @@ func (e *shareNotFoundError) Error() string {
 }
 
 func init() {
-	sharesCmd.AddCommand(sharesRmCmd)
+	sharesCmd.AddCommand(sharesDeleteCmd)
 }

@@ -76,7 +76,7 @@ when the recipient downloads it.`,
 		outf(cmd, "%s", share.ShareURL)
 		infof(cmd, "Shares %s.", request.Path)
 		if expiry := share.ExpiresAt(); expiry.IsZero() {
-			infof(cmd, "Never expires; revoke it with `ifiles shares rm %s`.", share.Hash)
+			infof(cmd, "Never expires; revoke it with `ifiles shares delete %s`.", share.Hash)
 		} else {
 			infof(cmd, "Expires %s.", expiry.Local().Format(shareTimeFormat))
 		}

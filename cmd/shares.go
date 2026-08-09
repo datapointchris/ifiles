@@ -30,7 +30,7 @@ and from "admin". Without it the server refuses with a bare 403 carrying no
 message at all, so these commands say so themselves.`,
 	Example: `  ifiles shares create /photos/wedding --expires 7d
   ifiles shares list
-  ifiles shares rm /public/share/T7bQ3xk`,
+  ifiles shares delete /public/share/T7bQ3xk`,
 	// Help is never wrong; a bare `ifiles shares` teaches the verbs rather than
 	// erroring on a missing subcommand.
 	Args: cobra.NoArgs,
