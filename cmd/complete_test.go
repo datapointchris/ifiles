@@ -13,7 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/v2/filebrowser"
 )
 
 // sampleListing is one directory holding a folder, two files, and a dotfile —

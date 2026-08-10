@@ -1,4 +1,4 @@
-module github.com/datapointchris/ifiles
+module github.com/datapointchris/ifiles/v2
 
 go 1.26.5
 

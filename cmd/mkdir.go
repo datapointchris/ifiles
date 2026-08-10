@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/v2/filebrowser"
 )
 
 var mkdirCmd = &cobra.Command{

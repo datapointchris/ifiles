@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/v2/filebrowser"
 )
 
 // shareTimeFormat is a minute-resolution local timestamp. A share's lifetime is

@@ -12,8 +12,8 @@ vars:
   COMMIT:
     sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
   LDFLAGS: >-
-    -X github.com/datapointchris/ifiles/cmd.version={{.VERSION}}
-    -X github.com/datapointchris/ifiles/cmd.commit={{.COMMIT}}
+    -X github.com/datapointchris/ifiles/v2/cmd.version={{.VERSION}}
+    -X github.com/datapointchris/ifiles/v2/cmd.commit={{.COMMIT}}
 
 tasks:
   default:

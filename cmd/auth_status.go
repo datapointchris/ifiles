@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/auth"
-	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/v2/auth"
+	"github.com/datapointchris/ifiles/v2/filebrowser"
 )
 
 var statusJSON bool

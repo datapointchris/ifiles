@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/v2/filebrowser"
 )
 
 // DefaultTTL is how long a cached listing is offered. Long enough that tabbing
