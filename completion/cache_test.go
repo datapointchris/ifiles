@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datapointchris/ifiles/v3/filebrowser"
+	"github.com/datapointchris/ifiles/filebrowser"
 )
 
 func cacheAt(t *testing.T, ttl time.Duration) *Cache {

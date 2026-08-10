@@ -1,6 +1,6 @@
 package main
 
-import "github.com/datapointchris/ifiles/v3/cmd"
+import "github.com/datapointchris/ifiles/cmd"
 
 func main() {
 	cmd.Execute()

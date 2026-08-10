@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/datapointchris/ifiles/v3/filebrowser"
+	"github.com/datapointchris/ifiles/filebrowser"
 )
 
 var rmForce bool

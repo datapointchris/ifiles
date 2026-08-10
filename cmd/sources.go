@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/v3/config"
+	"github.com/datapointchris/ifiles/config"
 )
 
 var sourcesJSON bool

@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/v3/config"
-	"github.com/datapointchris/ifiles/v3/filebrowser"
+	"github.com/datapointchris/ifiles/config"
+	"github.com/datapointchris/ifiles/filebrowser"
 )
 
 var (
