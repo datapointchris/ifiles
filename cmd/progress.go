@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/datapointchris/ifiles/v2/config"
+	"github.com/datapointchris/ifiles/v3/config"
 )
 
 // progressInterval throttles redraws. A per-write update on a fast local disk

@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/v2/auth"
+	"github.com/datapointchris/ifiles/v3/auth"
 )
 
 var authLogoutCmd = &cobra.Command{

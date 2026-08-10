@@ -13,9 +13,9 @@ import (
 	"github.com/datapointchris/goselfupdate/cobracmd"
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/v2/auth"
-	"github.com/datapointchris/ifiles/v2/config"
-	"github.com/datapointchris/ifiles/v2/filebrowser"
+	"github.com/datapointchris/ifiles/v3/auth"
+	"github.com/datapointchris/ifiles/v3/config"
+	"github.com/datapointchris/ifiles/v3/filebrowser"
 )
 
 var (

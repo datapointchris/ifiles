@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/datapointchris/ifiles/v2/completion"
-	"github.com/datapointchris/ifiles/v2/config"
-	"github.com/datapointchris/ifiles/v2/filebrowser"
+	"github.com/datapointchris/ifiles/v3/completion"
+	"github.com/datapointchris/ifiles/v3/config"
+	"github.com/datapointchris/ifiles/v3/filebrowser"
 )
 
 // completionTimeout bounds a listing fetched to answer a Tab. It is deliberately
