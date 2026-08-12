@@ -1,6 +1,6 @@
 # ifiles — FileBrowser Quantum CLI
 
-Universal rules live in `~/.claude/CLAUDE.md`; fleet standards in `~/dev/standards/`
+Universal rules live in `~/.claude/CLAUDE.md`; fleet standards in `standards/`
 (`go.md`, `cli-design.md`, `release.md`, `repo-structure.md`, `testing.md`). This file
 holds only what is specific to ifiles.
 
