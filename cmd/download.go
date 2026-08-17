@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/datapointchris/ifiles/config"
 	"github.com/datapointchris/ifiles/filebrowser"
@@ -196,7 +195,7 @@ func getToFile(cmd *cobra.Command, client *filebrowser.Client, remotePath, targe
 		// An archive's finished size is not known until it has been built.
 		total = 0
 	}
-	bar := newProgress(cmd.ErrOrStderr(), path.Base(remotePath), total, showProgress(cmd))
+	bar := newProgress(cmd.ErrOrStderr(), path.Base(remotePath), total, progressStyleFor(cmd))
 	bar.Set(offset)
 	// Recorded as it goes, so an interrupt leaves behind a partial whose provenance
 	// is known. Written on the same throttle as the progress line rather than per
@@ -236,16 +235,6 @@ func getToFile(cmd *cobra.Command, client *filebrowser.Client, remotePath, targe
 	}
 	infof(cmd, "Wrote %s (%s).", target, config.FormatSize(offset+written))
 	return nil
-}
-
-// showProgress reports whether a progress line would be useful: it is noise in a
-// log and meaningless when stderr is not a terminal.
-func showProgress(cmd *cobra.Command) bool {
-	file, ok := cmd.ErrOrStderr().(*os.File)
-	if !ok {
-		return false
-	}
-	return term.IsTerminal(int(file.Fd()))
 }
 
 func init() {

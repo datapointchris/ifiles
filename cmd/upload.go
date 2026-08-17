@@ -140,7 +140,7 @@ func putFile(cmd *cobra.Command, client *filebrowser.Client, localPath, remotePa
 		}
 	}
 
-	bar := newProgress(cmd.ErrOrStderr(), filepath.Base(localPath), info.Size(), showProgress(cmd))
+	bar := newProgress(cmd.ErrOrStderr(), filepath.Base(localPath), info.Size(), progressStyleFor(cmd))
 	bar.Set(offset)
 
 	ctx, cancel := commandContext(cmd)
