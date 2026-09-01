@@ -19,7 +19,7 @@ var (
 var listCmd = &cobra.Command{
 	Use:        "list [path]",
 	GroupID:    groupRead,
-	SuggestFor: []string{"ls", "dir"},
+	SuggestFor: []string{"dir"},
 	Short:      "List a remote directory",
 	Long: `Lists the contents of a remote directory, folders first.
 

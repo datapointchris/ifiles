@@ -17,7 +17,7 @@ var rmForce bool
 var deleteCmd = &cobra.Command{
 	Use:        "delete <path>",
 	GroupID:    groupAct,
-	SuggestFor: []string{"rm", "remove", "del"},
+	SuggestFor: []string{"rm", "remove"},
 	Short:      "Delete a remote file or directory",
 	Long: `Deletes a remote path.
 

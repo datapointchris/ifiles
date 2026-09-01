@@ -17,7 +17,7 @@ var (
 var moveCmd = &cobra.Command{
 	Use:        "move <src> <dst>",
 	GroupID:    groupAct,
-	SuggestFor: []string{"mv", "rename"},
+	SuggestFor: []string{"rename"},
 	Short:      "Move or rename a remote path",
 	Long: `Moves a remote path, server-side. Renaming is the same command with a
 destination in the same directory.
@@ -34,10 +34,9 @@ directory means "into it".`,
 }
 
 var copyCmd = &cobra.Command{
-	Use:        "copy <src> <dst>",
-	GroupID:    groupAct,
-	SuggestFor: []string{"cp"},
-	Short:      "Copy a remote path",
+	Use:     "copy <src> <dst>",
+	GroupID: groupAct,
+	Short:   "Copy a remote path",
 	Long: `Copies a remote path, server-side.
 
 Like move, the data never travels through this client.`,

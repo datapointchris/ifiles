@@ -89,6 +89,14 @@ const (
 )
 
 func init() {
+	// Cobra offers a command once when the typed word is within this distance of
+	// its name or is a prefix of it, and again for every SuggestFor entry equal to
+	// that word — the same name twice under "Did you mean this?" when both reach
+	// it. So SuggestFor carries only the words the distance guess misses, and the
+	// distance is pinned here rather than left to cobra's default, because that
+	// default is what decides which words those are.
+	rootCmd.SuggestionsMinimumDistance = 2
+
 	rootCmd.AddGroup(
 		&cobra.Group{ID: groupRead, Title: "Reading"},
 		&cobra.Group{ID: groupAct, Title: "Acting"},
