@@ -6,8 +6,8 @@ toolchain go1.26.6
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/datapointchris/goclikit v0.1.0
-	github.com/datapointchris/goselfupdate v0.10.0
+	github.com/datapointchris/goclikit v0.1.1
+	github.com/datapointchris/goselfupdate v0.11.0
 	github.com/spf13/cobra v1.10.2
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/term v0.45.0
