@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/datapointchris/goclikit"
 	"github.com/datapointchris/goselfupdate"
-	"github.com/datapointchris/goselfupdate/cobracmd"
 )
 
 // updateConfig describes where ifiles' releases come from. Shared by the `update`
@@ -18,7 +18,7 @@ func updateConfig() goselfupdate.Config {
 }
 
 func init() {
-	updateCmd := cobracmd.New(updateConfig())
+	updateCmd := goclikit.UpdateCommand(updateConfig())
 	updateCmd.GroupID = groupTool
 	rootCmd.AddCommand(updateCmd)
 }

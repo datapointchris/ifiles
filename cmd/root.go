@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/datapointchris/goclikit"
 	"github.com/datapointchris/goselfupdate/autoupdate"
-	"github.com/datapointchris/goselfupdate/cobracmd"
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/auth"
@@ -65,13 +65,13 @@ func run() int {
 	defer stop()
 
 	autoConfig := autoupdate.Config{Update: updateConfig()}
-	if err := cobracmd.Execute(ctx, rootCmd, autoConfig); err != nil {
-		if !errors.Is(err, cobracmd.ErrReported) {
+	if err := goclikit.Execute(ctx, rootCmd, autoConfig); err != nil {
+		if !errors.Is(err, goclikit.ErrReported) {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		// 2 says the command line was wrong rather than the run, which is the
 		// only failure a caller should retry with different arguments.
-		if errors.Is(err, cobracmd.ErrUsage) {
+		if errors.Is(err, goclikit.ErrUsage) {
 			return 2
 		}
 		return 1
