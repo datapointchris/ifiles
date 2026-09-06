@@ -19,10 +19,15 @@ import (
 )
 
 var (
-	configPath  string
-	sourceFlag  string
-	noInput     bool
-	timeoutFlag int
+	configPath string
+	sourceFlag string
+	noInput    bool
+
+	// A negative here reaches the same unbounded branch zero does, so a caller
+	// who typed one gets an answer they did not ask for and no sign of it.
+	// Zero is not a stolen value: a transfer window of no seconds fails on
+	// arrival, so nobody can mean it.
+	timeoutFlag = countFlag{noun: "seconds"}
 )
 
 var rootCmd = &cobra.Command{
@@ -108,7 +113,7 @@ func init() {
 	flags.StringVarP(&configPath, "config", "c", "", "path to config file (default is $XDG_CONFIG_HOME/ifiles/config.toml)")
 	flags.StringVar(&sourceFlag, "source", "", "Quantum source to address (default is the configured source)")
 	flags.BoolVar(&noInput, "no-input", false, "never prompt; fail naming the flag that would have answered")
-	flags.IntVar(&timeoutFlag, "timeout", 0, "seconds to allow a transfer (0 for no limit)")
+	flags.Var(&timeoutFlag, "timeout", "Seconds to allow a transfer (0 for no limit)")
 
 	mustCompleteFlag(rootCmd, "source", completeSources)
 }
@@ -157,8 +162,8 @@ func newClient() (*filebrowser.Client, *config.Config, error) {
 // are otherwise unbounded on purpose: a multi-gigabyte upload legitimately
 // outlives any default anyone would pick.
 func commandContext(cmd *cobra.Command) (context.Context, context.CancelFunc) {
-	if timeoutFlag <= 0 {
+	if timeoutFlag.count == 0 {
 		return cmd.Context(), func() {}
 	}
-	return context.WithTimeout(cmd.Context(), time.Duration(timeoutFlag)*time.Second)
+	return context.WithTimeout(cmd.Context(), time.Duration(timeoutFlag.count)*time.Second)
 }

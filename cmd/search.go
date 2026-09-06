@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/config"
@@ -9,7 +11,7 @@ import (
 
 var (
 	searchJSON     bool
-	searchLimit    int
+	searchLimit    limitFlag
 	searchWildcard bool
 )
 
@@ -48,16 +50,23 @@ why a one-character search reports an error rather than everything.`,
 		if err != nil {
 			return err
 		}
-		if searchLimit > 0 && len(results) > searchLimit {
-			results = results[:searchLimit]
+		matched := len(results)
+		results = limited(results, searchLimit)
+
+		// Above the --json return, so a caller reading the machine door is told
+		// why the set is empty or short rather than being handed two bytes that
+		// could mean either. Both go to stderr, and shortened is deferred so it
+		// lands under what it describes.
+		if len(results) == 0 {
+			reason := matchesEmptiness(searchLimit, matched)
+			infof(cmd, "%s", emptyMatches(request, reason))
 		}
+		defer shortened(cmd, len(results), matched, searchLimit)
 
 		if searchJSON {
 			return emitJSON(cmd, results)
 		}
-
 		if len(results) == 0 {
-			infof(cmd, "No matches.")
 			return nil
 		}
 
@@ -74,9 +83,63 @@ why a one-character search reports an error rather than everything.`,
 	},
 }
 
+// matchesEmpty names what left a search with no rows. Its members are this
+// command's own, so a reason belonging to another verb cannot reach the
+// renderer below.
+type matchesEmpty int
+
+const (
+	// matchesUnaccounted is the zero value, so a narrowing added later and left
+	// unclassified answers with the sentence that keeps the reader looking.
+	matchesUnaccounted matchesEmpty = iota
+	matchesNoneFound
+	matchesCappedToNothing
+)
+
+// matchesEmptyReasons is every member, for the test that walks them.
+var matchesEmptyReasons = []matchesEmpty{
+	matchesUnaccounted, matchesNoneFound, matchesCappedToNothing,
+}
+
+// matchesEmptiness takes the cap rather than inferring it from the count, and
+// asks it first because a cap of zero voids every widening the other answers
+// could name.
+func matchesEmptiness(limit limitFlag, matched int) matchesEmpty {
+	switch {
+	case limit.asksForNothing():
+		return matchesCappedToNothing
+	case matched == 0:
+		return matchesNoneFound
+	default:
+		return matchesUnaccounted
+	}
+}
+
+// emptyMatches names the widening command where one exists. A scoped search has
+// a wider search to offer; an unscoped one has already asked the whole index,
+// so there is nothing further to point at.
+func emptyMatches(request filebrowser.SearchRequest, reason matchesEmpty) string {
+	const unaccounted = "Nothing to show, and no narrowing accounts for it."
+	switch reason {
+	case matchesCappedToNothing:
+		return "--limit 0 asked for no matches."
+	case matchesNoneFound:
+		if request.Scope != "" {
+			return fmt.Sprintf("No matches under %s; ifiles search %s searches the whole source.",
+				request.Scope, request.Query)
+		}
+		return "No matches."
+	case matchesUnaccounted:
+		return unaccounted
+	}
+	// A member added to matchesEmpty and left unnamed above lands here, on the
+	// answer that keeps the reader looking rather than the one that closes.
+	return unaccounted
+}
+
 func init() {
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output matches as JSON to stdout")
-	searchCmd.Flags().IntVarP(&searchLimit, "limit", "n", 0, "maximum matches to show (0 for all)")
+	registerLimit(searchCmd, &searchLimit, "matches")
 	searchCmd.Flags().BoolVar(&searchWildcard, "glob", false, "treat the query as a glob pattern")
 	rootCmd.AddCommand(searchCmd)
 }
