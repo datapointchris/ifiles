@@ -70,7 +70,11 @@ why a one-character search reports an error rather than everything.`,
 			}
 			writef(table, "%s\t%s\n", size, result.Path)
 		}
-		return table.Flush()
+		if err := table.Flush(); err != nil {
+			return err
+		}
+		capNotice(cmd, len(results), searchLimit)
+		return nil
 	},
 }
 
@@ -92,7 +96,7 @@ func emptyMatches(reason emptyReason) string {
 
 func init() {
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output matches as JSON to stdout")
-	registerLimit(searchCmd, &searchLimit, "maximum matches to show (default all)")
+	registerLimit(searchCmd, &searchLimit, "Maximum number of matches to show")
 	searchCmd.Flags().BoolVar(&searchWildcard, "glob", false, "treat the query as a glob pattern")
 	rootCmd.AddCommand(searchCmd)
 }

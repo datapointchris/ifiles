@@ -80,7 +80,11 @@ it still resolves, and 404s for whoever was sent it.`,
 				share.HasPassword,
 				share.ShareURL)
 		}
-		return table.Flush()
+		if err := table.Flush(); err != nil {
+			return err
+		}
+		capNotice(cmd, len(shares), shareListLimit)
+		return nil
 	},
 }
 
@@ -134,6 +138,6 @@ func shareDownloadsColumn(share filebrowser.Share) string {
 
 func init() {
 	sharesListCmd.Flags().BoolVar(&shareListJSON, "json", false, "Output shares as JSON to stdout")
-	registerLimit(sharesListCmd, &shareListLimit, "maximum shares to show (default all)")
+	registerLimit(sharesListCmd, &shareListLimit, "Maximum number of share links to show")
 	sharesCmd.AddCommand(sharesListCmd)
 }

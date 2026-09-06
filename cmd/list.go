@@ -81,6 +81,7 @@ UI's per-account setting.`,
 			for _, entry := range entries {
 				outf(cmd, "%s", name(entry))
 			}
+			capNotice(cmd, len(entries), lsLimit)
 			return nil
 		}
 
@@ -93,7 +94,11 @@ UI's per-account setting.`,
 			}
 			writef(table, "%s\t%s\t%s\n", size, entry.Modified.Local().Format("2006-01-02 15:04"), name(entry))
 		}
-		return table.Flush()
+		if err := table.Flush(); err != nil {
+			return err
+		}
+		capNotice(cmd, len(entries), lsLimit)
+		return nil
 	},
 }
 
@@ -134,7 +139,7 @@ func name(entry filebrowser.Item) string {
 
 func init() {
 	listCmd.Flags().BoolVar(&lsJSON, "json", false, "Output entries as JSON to stdout")
-	registerLimit(listCmd, &lsLimit, "maximum entries to list (default all)")
+	registerLimit(listCmd, &lsLimit, "Maximum number of entries to show")
 	listCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
 	listCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
 	rootCmd.AddCommand(listCmd)
