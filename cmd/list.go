@@ -67,13 +67,21 @@ UI's per-account setting.`,
 		unhidden := len(entries)
 		entries = limited(entries, lsLimit)
 
+		// Both notices sit above the --json return, so a caller reading the
+		// machine door learns why a listing is empty or short rather than
+		// receiving two bytes that could mean either. Both go to stderr, which
+		// leaves stdout carrying rows alone. shortened is deferred so it lands
+		// under what it describes in every rendering.
+		if len(entries) == 0 {
+			reason := listingEmptiness(lsLimit, present, unhidden)
+			infof(cmd, "%s", emptyListing(remotePath, reason))
+		}
+		defer shortened(cmd, len(entries), unhidden, lsLimit)
+
 		if lsJSON {
 			return emitJSON(cmd, entries)
 		}
-
 		if len(entries) == 0 {
-			reason := listingEmptiness(present, unhidden)
-			infof(cmd, "%s", emptyListing(remotePath, reason))
 			return nil
 		}
 
@@ -97,29 +105,61 @@ UI's per-account setting.`,
 	},
 }
 
-// listingEmptiness reads the two counts a listing passes through. A cap of zero
-// is the only remaining narrowing once both are non-zero, since every other cap
-// keeps a row when there was one to keep.
-func listingEmptiness(present, unhidden int) emptyReason {
+// listEmpty names what left a directory listing with no rows. Its members are
+// this command's own, so a reason belonging to another verb cannot reach the
+// renderer below: the compiler refuses it rather than a test catching it.
+type listEmpty int
+
+const (
+	// listUnaccounted is first so the zero value is the answer that keeps the
+	// reader looking. A narrowing added later and not classified here lands on
+	// it, rather than on a sentence claiming the directory is bare.
+	listUnaccounted listEmpty = iota
+	listNothingThere
+	listAllHidden
+	listCappedToNothing
+)
+
+// listEmptyReasons is every member, for the test that walks them.
+var listEmptyReasons = []listEmpty{
+	listUnaccounted, listNothingThere, listAllHidden, listCappedToNothing,
+}
+
+// listingEmptiness names which narrowing emptied the listing, and takes the cap
+// rather than inferring it from the counts either side.
+//
+// The cap is asked first because it voids the other answers. Following "-a
+// lists them" while --limit 0 stands prints nothing again, so a remedy offered
+// under a zero cap is a remedy that cannot work.
+func listingEmptiness(limit limitFlag, present, unhidden int) listEmpty {
 	switch {
+	case limit.asksForNothing():
+		return listCappedToNothing
 	case present == 0:
-		return populationEmpty
+		return listNothingThere
 	case unhidden == 0:
-		return hiddenFiltered
+		return listAllHidden
 	default:
-		return cappedToNothing
+		return listUnaccounted
 	}
 }
 
-func emptyListing(remotePath string, reason emptyReason) string {
+func emptyListing(remotePath string, reason listEmpty) string {
+	unaccounted := fmt.Sprintf("Nothing to show for %s, and no narrowing accounts for it.", remotePath)
 	switch reason {
-	case hiddenFiltered:
-		return fmt.Sprintf("%s holds only hidden entries; -a lists them.", remotePath)
-	case cappedToNothing:
+	case listCappedToNothing:
 		return "--limit 0 asked for no entries."
-	default:
+	case listNothingThere:
 		return fmt.Sprintf("%s is empty.", remotePath)
+	case listAllHidden:
+		return fmt.Sprintf("%s holds only hidden entries; ifiles list %s -a lists them.", remotePath, remotePath)
+	case listUnaccounted:
+		return unaccounted
 	}
+	// A member added to listEmpty and left unnamed above lands here. The answer
+	// keeps the reader looking rather than telling them the directory is bare,
+	// which is the direction a fallthrough has to fail in.
+	return unaccounted
 }
 
 // name marks directories with a trailing slash, which is the handle a caller
@@ -134,7 +174,7 @@ func name(entry filebrowser.Item) string {
 
 func init() {
 	listCmd.Flags().BoolVar(&lsJSON, "json", false, "Output entries as JSON to stdout")
-	registerLimit(listCmd, &lsLimit, "Maximum number of entries to show")
+	registerLimit(listCmd, &lsLimit, "entries")
 	listCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
 	listCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
 	rootCmd.AddCommand(listCmd)

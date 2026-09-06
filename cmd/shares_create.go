@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/config"
@@ -10,9 +12,36 @@ import (
 var (
 	shareExpires    string
 	sharePassword   bool
-	shareDownloads  int
+	shareDownloads  downloadsFlag
 	shareCreateJSON bool
 )
+
+// downloadsFlag is a download cap the parser can refuse. A negative one is not a
+// count, and it survives the wire: the request field is omitempty, so zero is
+// dropped and anything else is sent — including a number no caller meant. It
+// then reaches a public link that nothing on screen reports, because the
+// confirmation line is written only for a cap above zero.
+//
+// Zero is kept as written. It is the server's own spelling for an uncapped
+// link, and it is what an omitted flag sends, so the two agree.
+type downloadsFlag struct {
+	count int
+}
+
+func (d *downloadsFlag) Set(raw string) error {
+	count, err := parseCount(raw, "downloads")
+	if err != nil {
+		return err
+	}
+	d.count = count
+	return nil
+}
+
+// String reports zero, which pflag reads as a zero value and prints no default
+// for. An uncapped link is what the flag's absence already says.
+func (d *downloadsFlag) String() string { return strconv.Itoa(d.count) }
+
+func (d *downloadsFlag) Type() string { return "int" }
 
 var sharesCreateCmd = &cobra.Command{
 	Use:   "create <path>",
@@ -40,7 +69,7 @@ when the recipient downloads it.`,
 
 		request := filebrowser.ShareRequest{
 			Path:           filebrowser.CleanPath(args[0]),
-			DownloadsLimit: shareDownloads,
+			DownloadsLimit: shareDownloads.count,
 		}
 		if shareExpires != "" {
 			expires, err := config.ParseDuration(shareExpires)
@@ -93,7 +122,7 @@ when the recipient downloads it.`,
 func init() {
 	sharesCreateCmd.Flags().StringVar(&shareExpires, "expires", "", "how long the link lives, e.g. 7d (default is never)")
 	sharesCreateCmd.Flags().BoolVar(&sharePassword, "password", false, "require a password, read from a hidden prompt")
-	sharesCreateCmd.Flags().IntVar(&shareDownloads, "downloads", 0, "stop the link working after this many downloads (0 for no limit)")
+	sharesCreateCmd.Flags().Var(&shareDownloads, "downloads", "Stop the link working after this many downloads (0 for no limit)")
 	sharesCreateCmd.Flags().BoolVar(&shareCreateJSON, "json", false, "Output the created share as JSON to stdout")
 	// Suggestions, not the accepted set: ParseDuration takes any of these units,
 	// and these are the windows a link is actually set to.

@@ -60,13 +60,20 @@ it still resolves, and 404s for whoever was sent it.`,
 		found := len(shares)
 		shares = limited(shares, shareListLimit)
 
+		// Above the --json return, so a caller reading the machine door is told
+		// why the set is empty or short rather than being handed two bytes that
+		// could mean either. Both go to stderr, and shortened is deferred so it
+		// lands under what it describes.
+		if len(shares) == 0 {
+			reason := sharesEmptiness(shareListLimit, scope, found)
+			infof(cmd, "%s", emptyShares(scope, reason))
+		}
+		defer shortened(cmd, len(shares), found, shareListLimit)
+
 		if shareListJSON {
 			return emitJSON(cmd, shares)
 		}
-
 		if len(shares) == 0 {
-			reason := sharesEmptiness(scope, found)
-			infof(cmd, "%s", emptyShares(scope, reason))
 			return nil
 		}
 
@@ -84,29 +91,55 @@ it still resolves, and 404s for whoever was sent it.`,
 	},
 }
 
-// sharesEmptiness reads the two narrowings a listing of links passes through. A
-// path argument asks about one path and a cap of zero asks for no rows, so a
-// bare "no share links" would answer for the whole account in either case.
-func sharesEmptiness(scope string, found int) emptyReason {
+// sharesEmpty names what left a listing of links with no rows. Its members are
+// this command's own, so a reason belonging to another verb cannot reach the
+// renderer below.
+type sharesEmpty int
+
+const (
+	// sharesUnaccounted is the zero value, so a narrowing added later and left
+	// unclassified answers with the sentence that keeps the reader looking.
+	sharesUnaccounted sharesEmpty = iota
+	sharesNoneOnTheAccount
+	sharesNoneForThePath
+	sharesCappedToNothing
+)
+
+// sharesEmptyReasons is every member, for the test that walks them.
+var sharesEmptyReasons = []sharesEmpty{
+	sharesUnaccounted, sharesNoneOnTheAccount, sharesNoneForThePath, sharesCappedToNothing,
+}
+
+// sharesEmptiness takes the cap rather than inferring it from the count, and
+// asks it first because a cap of zero voids the widening the path answer names.
+func sharesEmptiness(limit limitFlag, scope string, found int) sharesEmpty {
 	switch {
-	case found > 0:
-		return cappedToNothing
+	case limit.asksForNothing():
+		return sharesCappedToNothing
 	case scope != "":
-		return scopeFiltered
+		return sharesNoneForThePath
+	case found == 0:
+		return sharesNoneOnTheAccount
 	default:
-		return populationEmpty
+		return sharesUnaccounted
 	}
 }
 
-func emptyShares(scope string, reason emptyReason) string {
+func emptyShares(scope string, reason sharesEmpty) string {
+	const unaccounted = "Nothing to show, and no narrowing accounts for it."
 	switch reason {
-	case cappedToNothing:
+	case sharesCappedToNothing:
 		return "--limit 0 asked for no share links."
-	case scopeFiltered:
-		return fmt.Sprintf("No share links for %s.", scope)
-	default:
+	case sharesNoneOnTheAccount:
 		return "No share links."
+	case sharesNoneForThePath:
+		return fmt.Sprintf("No share links for %s; ifiles shares list lists every link.", scope)
+	case sharesUnaccounted:
+		return unaccounted
 	}
+	// A member added to sharesEmpty and left unnamed above lands here, on the
+	// answer that keeps the reader looking rather than the one that closes.
+	return unaccounted
 }
 
 // shareExpiryColumn folds three states into one column, because a link that has
@@ -134,6 +167,6 @@ func shareDownloadsColumn(share filebrowser.Share) string {
 
 func init() {
 	sharesListCmd.Flags().BoolVar(&shareListJSON, "json", false, "Output shares as JSON to stdout")
-	registerLimit(sharesListCmd, &shareListLimit, "Maximum number of share links to show")
+	registerLimit(sharesListCmd, &shareListLimit, "share links")
 	sharesCmd.AddCommand(sharesListCmd)
 }

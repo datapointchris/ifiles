@@ -28,22 +28,6 @@ func infof(cmd *cobra.Command, format string, args ...any) {
 	writef(cmd.ErrOrStderr(), format+"\n", args...)
 }
 
-// emptyReason names what produced a listing with no rows. Three of the four are
-// a narrowing the caller applied, and only populationEmpty is a fact about the
-// thing being listed — so a sentence that reports one as the other tells someone
-// to stop looking for rows that are there.
-//
-// It exists as a value rather than only inside the sentence, because which
-// narrowing was picked is the behavior worth pinning and the wording is not.
-type emptyReason int
-
-const (
-	populationEmpty emptyReason = iota
-	hiddenFiltered
-	scopeFiltered
-	cappedToNothing
-)
-
 func emitJSON(cmd *cobra.Command, v any) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")

@@ -5,7 +5,25 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/datapointchris/ifiles/filebrowser"
 )
+
+// listingsWithARowCap is the oracle the tree walk below compares against, and
+// it is written by hand on purpose. A walk that both collects and checks through
+// Lookup("limit") cannot see a listing that lost its cap: the flag leaves the
+// collection and the check together, and the comparison still holds. This table
+// is decided somewhere that lookup cannot reach, so dropping registerLimit from
+// a verb fails here instead of passing quietly.
+//
+// The sentence is spelled out rather than built the way registerLimit builds
+// it, because it is the one string every caller reads and a test that composes
+// it the same way would agree with any mistake in the composition.
+var listingsWithARowCap = map[string]string{
+	"ifiles list":        "Maximum number of entries to show (0 shows none)",
+	"ifiles search":      "Maximum number of matches to show (0 shows none)",
+	"ifiles shares list": "Maximum number of share links to show (0 shows none)",
+}
 
 // newListing is a bare command carrying a row cap, so the flag can be parsed
 // and printed without reaching into one of the real listings and mutating the
@@ -13,7 +31,7 @@ import (
 func newListing() (*cobra.Command, *limitFlag) {
 	var limit limitFlag
 	command := &cobra.Command{Use: "listing"}
-	registerLimit(command, &limit, "Maximum number of rows to show")
+	registerLimit(command, &limit, "rows")
 	return command, &limit
 }
 
@@ -51,8 +69,14 @@ func TestACapBelowZeroIsRefusedByTheParser(t *testing.T) {
 	t.Parallel()
 
 	command, limit := newListing()
-	if err := command.Flags().Parse([]string{"--limit=-1"}); err == nil {
+	err := command.Flags().Parse([]string{"--limit=-1"})
+	if err == nil {
 		t.Fatal("--limit=-1 parsed, want a usage error")
+	}
+	// The noun comes from the command rather than from the flag's own
+	// vocabulary, so a caller reads the same word here and on the help screen.
+	if !strings.Contains(err.Error(), "rows") {
+		t.Errorf("the refusal does not name what was counted: %v", err)
 	}
 	if limit.set {
 		t.Errorf("a refused cap was recorded as %+v, want the flag left unset", limit)
@@ -66,10 +90,13 @@ func TestACapBelowZeroIsRefusedByTheParser(t *testing.T) {
 // here to append: an uncapped listing shows every row. A number on that line
 // would name a cap that is not applied, and the number pflag reaches for first
 // is 0 — which is the cap that means no rows at all.
+//
+// The line also has to say what 0 does, on the release that changes what 0
+// does. Nothing else on the screen carries it.
 func TestAnUncappedListingPrintsNoDefault(t *testing.T) {
 	t.Parallel()
 
-	const written = "Maximum number of rows to show"
+	const written = "Maximum number of rows to show (0 shows none)"
 
 	command, _ := newListing()
 	usage := strings.TrimRight(command.Flags().FlagUsages(), " \n")
@@ -85,72 +112,227 @@ func TestAnUncappedListingPrintsNoDefault(t *testing.T) {
 // A cap of zero empties a listing that had rows, and the empty state written
 // for a genuinely bare listing then reports the wrong thing — that the
 // directory holds nothing, that the account has no links, that the index found
-// nothing. Each command has to tell its own narrowing apart from the population.
-func TestAnEmptyListingNamesTheNarrowingThatEmptiedIt(t *testing.T) {
+// nothing.
+//
+// The cap has to win over every other narrowing, because widening any of those
+// while it stands still shows nothing. A remedy offered under a zero cap is a
+// remedy the reader can follow and get the same empty screen from.
+func TestAnEmptyListingBlamesTheCapBeforeAnyOtherNarrowing(t *testing.T) {
 	t.Parallel()
+
+	zero := limitFlag{rows: 0, set: true}
+	three := limitFlag{rows: 3, set: true}
+	none := limitFlag{}
 
 	t.Run("entries", func(t *testing.T) {
 		cases := map[string]struct {
+			limit             limitFlag
 			present, unhidden int
-			want              emptyReason
+			want              listEmpty
 		}{
-			"nothing on the server":       {0, 0, populationEmpty},
-			"every entry hidden":          {4, 0, hiddenFiltered},
-			"capped at zero":              {4, 4, cappedToNothing},
-			"hidden, then capped":         {4, 2, cappedToNothing},
-			"one entry, all of it hidden": {1, 0, hiddenFiltered},
+			"nothing on the server":       {none, 0, 0, listNothingThere},
+			"every entry hidden":          {none, 4, 0, listAllHidden},
+			"one entry, all of it hidden": {none, 1, 0, listAllHidden},
+			"capped at zero":              {zero, 4, 4, listCappedToNothing},
+			"hidden, then capped":         {zero, 4, 2, listCappedToNothing},
+			// The cap wins over the hidden filter, because -a cannot show a row
+			// while --limit 0 stands.
+			"hidden and capped at zero": {zero, 4, 0, listCappedToNothing},
+			"empty and capped at zero":  {zero, 0, 0, listCappedToNothing},
+			// No narrowing this command knows about accounts for it.
+			"nothing accounts for it": {three, 4, 4, listUnaccounted},
 		}
 		for name, tc := range cases {
-			if got := listingEmptiness(tc.present, tc.unhidden); got != tc.want {
-				t.Errorf("%s: listingEmptiness(%d, %d) = %s, want %s", name, tc.present, tc.unhidden, reasonName(got), reasonName(tc.want))
+			if got := listingEmptiness(tc.limit, tc.present, tc.unhidden); got != tc.want {
+				t.Errorf("%s: listingEmptiness(%+v, %d, %d) = %d, want %d",
+					name, tc.limit, tc.present, tc.unhidden, got, tc.want)
 			}
 		}
 	})
 
 	t.Run("share links", func(t *testing.T) {
 		cases := map[string]struct {
+			limit limitFlag
 			scope string
 			found int
-			want  emptyReason
+			want  sharesEmpty
 		}{
-			"account has none":      {"", 0, populationEmpty},
-			"none for the path":     {"/photos", 0, scopeFiltered},
-			"capped at zero":        {"", 3, cappedToNothing},
-			"capped under the path": {"/photos", 3, cappedToNothing},
+			"account has none":  {none, "", 0, sharesNoneOnTheAccount},
+			"none for the path": {none, "/photos", 0, sharesNoneForThePath},
+			"capped at zero":    {zero, "", 3, sharesCappedToNothing},
+			// The cap wins over the path, because widening to the whole account
+			// cannot show a row while --limit 0 stands.
+			"capped under the path":   {zero, "/photos", 3, sharesCappedToNothing},
+			"capped and none found":   {zero, "/photos", 0, sharesCappedToNothing},
+			"nothing accounts for it": {three, "", 3, sharesUnaccounted},
 		}
 		for name, tc := range cases {
-			if got := sharesEmptiness(tc.scope, tc.found); got != tc.want {
-				t.Errorf("%s: sharesEmptiness(%q, %d) = %s, want %s", name, tc.scope, tc.found, reasonName(got), reasonName(tc.want))
+			if got := sharesEmptiness(tc.limit, tc.scope, tc.found); got != tc.want {
+				t.Errorf("%s: sharesEmptiness(%+v, %q, %d) = %d, want %d",
+					name, tc.limit, tc.scope, tc.found, got, tc.want)
 			}
 		}
 	})
 
 	t.Run("matches", func(t *testing.T) {
-		if got := matchesEmptiness(0); got != populationEmpty {
-			t.Errorf("matchesEmptiness(0) = %s, want %s", reasonName(got), reasonName(populationEmpty))
+		cases := map[string]struct {
+			limit   limitFlag
+			matched int
+			want    matchesEmpty
+		}{
+			"index found none":        {none, 0, matchesNoneFound},
+			"capped at zero":          {zero, 7, matchesCappedToNothing},
+			"capped and none found":   {zero, 0, matchesCappedToNothing},
+			"nothing accounts for it": {three, 7, matchesUnaccounted},
 		}
-		if got := matchesEmptiness(7); got != cappedToNothing {
-			t.Errorf("matchesEmptiness(7) = %s, want %s", reasonName(got), reasonName(cappedToNothing))
+		for name, tc := range cases {
+			if got := matchesEmptiness(tc.limit, tc.matched); got != tc.want {
+				t.Errorf("%s: matchesEmptiness(%+v, %d) = %d, want %d",
+					name, tc.limit, tc.matched, got, tc.want)
+			}
 		}
 	})
+}
+
+// Classifying is only half of it. The half a reader sees is the sentence, and
+// nothing pins that a reason reaches its own: swapping two arms of a renderer
+// leaves the classifier's tests green while every reader is told the wrong
+// thing.
+//
+// Distinctness is what is asserted, not the wording. Two reasons rendering
+// alike means one of them is unreportable, whatever the words are, and the
+// assertion survives any rewrite of them.
+func TestEveryReasonRendersItsOwnSentence(t *testing.T) {
+	t.Parallel()
+
+	t.Run("entries", func(t *testing.T) {
+		seen := map[string]listEmpty{}
+		for _, reason := range listEmptyReasons {
+			sentence := emptyListing("/photos", reason)
+			if sentence == "" {
+				t.Errorf("reason %d renders nothing", reason)
+			}
+			if first, repeat := seen[sentence]; repeat {
+				t.Errorf("reasons %d and %d both render %q", first, reason, sentence)
+			}
+			seen[sentence] = reason
+		}
+	})
+
+	t.Run("share links", func(t *testing.T) {
+		seen := map[string]sharesEmpty{}
+		for _, reason := range sharesEmptyReasons {
+			sentence := emptyShares("/photos", reason)
+			if sentence == "" {
+				t.Errorf("reason %d renders nothing", reason)
+			}
+			if first, repeat := seen[sentence]; repeat {
+				t.Errorf("reasons %d and %d both render %q", first, reason, sentence)
+			}
+			seen[sentence] = reason
+		}
+	})
+
+	t.Run("matches", func(t *testing.T) {
+		request := filebrowser.SearchRequest{Query: "invoice", Scope: "/documents"}
+		seen := map[string]matchesEmpty{}
+		for _, reason := range matchesEmptyReasons {
+			sentence := emptyMatches(request, reason)
+			if sentence == "" {
+				t.Errorf("reason %d renders nothing", reason)
+			}
+			if first, repeat := seen[sentence]; repeat {
+				t.Errorf("reasons %d and %d both render %q", first, reason, sentence)
+			}
+			seen[sentence] = reason
+		}
+	})
+}
+
+// An empty state is a help surface, so it ends by naming a command rather than
+// leaving the reader to guess the widening. Only the answers that have a wider
+// question to offer owe one: an unscoped search has already asked the whole
+// index, and there is nothing further to point at.
+func TestAnEmptyStateWithAWiderQuestionNamesIt(t *testing.T) {
+	t.Parallel()
+
+	scoped := filebrowser.SearchRequest{Query: "invoice", Scope: "/documents"}
+	cases := map[string]struct{ sentence, wants string }{
+		"a directory of hidden entries": {emptyListing("/photos", listAllHidden), "ifiles list /photos -a"},
+		"a path with no links":          {emptyShares("/photos", sharesNoneForThePath), "ifiles shares list"},
+		"a scoped search":               {emptyMatches(scoped, matchesNoneFound), "ifiles search invoice"},
+	}
+
+	for name, tc := range cases {
+		if !strings.Contains(tc.sentence, tc.wants) {
+			t.Errorf("%s: %q does not name %q", name, tc.sentence, tc.wants)
+		}
+	}
+}
+
+// A page of rows reads as the whole set, so a listing that was cut says by how
+// much and names the flag that widens it. The gate is the count that was cut
+// rather than the cap being reached, so a listing holding exactly the cap is
+// not reported as truncated.
+func TestOnlyAShortenedListingIsReported(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		shown, before int
+		want          bool
+	}{
+		"cut from more":        {3, 21, true},
+		"exactly the cap":      {3, 3, false},
+		"nothing cut":          {21, 21, false},
+		"emptied":              {0, 21, false},
+		"empty on both counts": {0, 0, false},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			command := &cobra.Command{Use: "listing"}
+			var stderr strings.Builder
+			command.SetErr(&stderr)
+
+			shortened(command, tc.shown, tc.before, limitFlag{rows: tc.shown, set: true, noun: "entries"})
+
+			if reported := stderr.Len() > 0; reported != tc.want {
+				t.Errorf("shortened(%d, %d) reported %t, want %t: %q",
+					tc.shown, tc.before, reported, tc.want, stderr.String())
+			}
+		})
+	}
 }
 
 // One flag meaning two things inside one CLI is what this pins. A listing added
 // later is where a second reading comes back: a plain int flag takes a negative
 // straight into a slice expression, and a zero default reads as "everything" to
 // whoever writes the truncation. The help screen shows no difference either way.
+//
+// The two directions are checked against different oracles. Every listing that
+// owes a cap is named in listingsWithARowCap, and every --limit found in the
+// tree has to be one of them — so a cap that goes missing and a cap that
+// appears under another name both fail.
 func TestEveryListingSpellsItsRowCapTheSameWay(t *testing.T) {
 	t.Parallel()
 
-	capped := 0
+	found := map[string]bool{}
 	for _, command := range descendants(rootCmd) {
 		flag := command.Flags().Lookup("limit")
 		if flag == nil {
 			continue
 		}
-		capped++
+		path := command.CommandPath()
+		found[path] = true
 
-		t.Run(command.CommandPath(), func(t *testing.T) {
+		t.Run(path, func(t *testing.T) {
+			usage, owed := listingsWithARowCap[path]
+			if !owed {
+				t.Fatalf("%s declares --limit and is not in listingsWithARowCap", path)
+			}
+			if flag.Usage != usage {
+				t.Errorf("--limit reads %q, want %q", flag.Usage, usage)
+			}
 			if _, ok := flag.Value.(*limitFlag); !ok {
 				t.Errorf("--limit binds to a %T, want a *limitFlag", flag.Value)
 			}
@@ -160,31 +342,33 @@ func TestEveryListingSpellsItsRowCapTheSameWay(t *testing.T) {
 			if flag.DefValue != "" {
 				t.Errorf("--limit defaults to %q, want no default", flag.DefValue)
 			}
-			if strings.Contains(flag.Usage, "0 for all") {
-				t.Errorf("--limit is documented as %q", flag.Usage)
-			}
 		})
 	}
 
-	if capped == 0 {
-		t.Fatal("no command declares --limit, so this test pins nothing")
+	for path := range listingsWithARowCap {
+		if !found[path] {
+			t.Errorf("%s owes a row cap and declares no --limit", path)
+		}
 	}
 }
 
-// reasonName spells an emptyReason so a failure names the branch that was taken
-// rather than its position in the const block.
-func reasonName(reason emptyReason) string {
-	switch reason {
-	case populationEmpty:
-		return "populationEmpty"
-	case hiddenFiltered:
-		return "hiddenFiltered"
-	case scopeFiltered:
-		return "scopeFiltered"
-	case cappedToNothing:
-		return "cappedToNothing"
-	default:
-		return "unknown"
+// The floor this change puts on --limit is owed by every integer flag whose
+// value reaches the server, and --downloads reaches a durable public link.
+func TestADownloadCapBelowZeroIsRefusedByTheParser(t *testing.T) {
+	t.Parallel()
+
+	var downloads downloadsFlag
+	command := &cobra.Command{Use: "create"}
+	command.Flags().Var(&downloads, "downloads", "Stop the link working after this many downloads (0 for no limit)")
+
+	if err := command.Flags().Parse([]string{"--downloads=-1"}); err == nil {
+		t.Fatal("--downloads=-1 parsed, want a usage error")
+	}
+	if downloads.count != 0 {
+		t.Errorf("a refused cap was recorded as %d, want 0", downloads.count)
+	}
+	if err := command.Flags().Parse([]string{"--downloads=0"}); err != nil {
+		t.Errorf("--downloads=0 was refused: %v", err)
 	}
 }
 
