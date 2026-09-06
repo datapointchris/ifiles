@@ -70,11 +70,7 @@ why a one-character search reports an error rather than everything.`,
 			}
 			writef(table, "%s\t%s\n", size, result.Path)
 		}
-		if err := table.Flush(); err != nil {
-			return err
-		}
-		capNotice(cmd, len(results), searchLimit)
-		return nil
+		return table.Flush()
 	},
 }
 

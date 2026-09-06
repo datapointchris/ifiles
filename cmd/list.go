@@ -81,7 +81,6 @@ UI's per-account setting.`,
 			for _, entry := range entries {
 				outf(cmd, "%s", name(entry))
 			}
-			capNotice(cmd, len(entries), lsLimit)
 			return nil
 		}
 
@@ -94,11 +93,7 @@ UI's per-account setting.`,
 			}
 			writef(table, "%s\t%s\t%s\n", size, entry.Modified.Local().Format("2006-01-02 15:04"), name(entry))
 		}
-		if err := table.Flush(); err != nil {
-			return err
-		}
-		capNotice(cmd, len(entries), lsLimit)
-		return nil
+		return table.Flush()
 	},
 }
 

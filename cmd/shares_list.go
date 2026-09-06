@@ -80,11 +80,7 @@ it still resolves, and 404s for whoever was sent it.`,
 				share.HasPassword,
 				share.ShareURL)
 		}
-		if err := table.Flush(); err != nil {
-			return err
-		}
-		capNotice(cmd, len(shares), shareListLimit)
-		return nil
+		return table.Flush()
 	},
 }
 

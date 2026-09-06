@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -29,43 +27,17 @@ func TestACapOfZeroAsksForNoRows(t *testing.T) {
 		limit limitFlag
 		want  int
 	}{
-		"zero":              {limitFlag{rows: 0}, 0},
-		"under the count":   {limitFlag{rows: 2}, 2},
-		"exactly the count": {limitFlag{rows: 3}, 3},
-		"over the count":    {limitFlag{rows: 9}, 3},
-		"the default":       {limitFlag{rows: defaultRowCap}, 3},
+		"uncapped":          {limitFlag{}, 3},
+		"zero":              {limitFlag{rows: 0, set: true}, 0},
+		"under the count":   {limitFlag{rows: 2, set: true}, 2},
+		"exactly the count": {limitFlag{rows: 3, set: true}, 3},
+		"over the count":    {limitFlag{rows: 9, set: true}, 3},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			if got := limited(rows, tc.limit); len(got) != tc.want {
 				t.Errorf("limited(%v, %+v) kept %d rows, want %d", rows, tc.limit, len(got), tc.want)
-			}
-		})
-	}
-}
-
-// A full page is the one screen that cannot say whether it is the whole answer,
-// so it says which it was. A short page is already unambiguous and stays quiet,
-// and a cap of zero has its own sentence rather than this one.
-func TestOnlyAFullPageAnnouncesTheCap(t *testing.T) {
-	t.Parallel()
-
-	cases := map[string]struct {
-		shown int
-		limit limitFlag
-		want  bool
-	}{
-		"stopped at the cap":  {5, limitFlag{rows: 5}, true},
-		"short of the cap":    {4, limitFlag{rows: 5}, false},
-		"empty under a cap":   {0, limitFlag{rows: 5}, false},
-		"empty under no rows": {0, limitFlag{rows: 0}, false},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			if got := reachedCap(tc.shown, tc.limit); got != tc.want {
-				t.Errorf("reachedCap(%d, %+v) = %t, want %t", tc.shown, tc.limit, got, tc.want)
 			}
 		})
 	}
@@ -82,17 +54,22 @@ func TestACapBelowZeroIsRefusedByTheParser(t *testing.T) {
 	if err := command.Flags().Parse([]string{"--limit=-1"}); err == nil {
 		t.Fatal("--limit=-1 parsed, want a usage error")
 	}
-	if limit.rows != defaultRowCap {
-		t.Errorf("a refused cap left the flag at %d, want the default of %d", limit.rows, defaultRowCap)
+	if limit.set {
+		t.Errorf("a refused cap was recorded as %+v, want the flag left unset", limit)
+	}
+	if got := limited([]int{1, 2, 3}, *limit); len(got) != 3 {
+		t.Errorf("a refused cap kept %d rows, want all 3", len(got))
 	}
 }
 
-// The cap a caller gets without asking is on the help screen, because a bounded
-// default nobody published is a narrowing that reads as the whole answer. pflag
-// renders it from the flag's own String, so this fails if the type ever answers
-// with something pflag reads as a zero value.
-func TestTheDefaultCapIsOnTheHelpScreen(t *testing.T) {
+// pflag appends a flag's default to its usage line, and there is no default
+// here to append: an uncapped listing shows every row. A number on that line
+// would name a cap that is not applied, and the number pflag reaches for first
+// is 0 — which is the cap that means no rows at all.
+func TestAnUncappedListingPrintsNoDefault(t *testing.T) {
 	t.Parallel()
+
+	const written = "Maximum number of rows to show"
 
 	command, _ := newListing()
 	usage := strings.TrimRight(command.Flags().FlagUsages(), " \n")
@@ -100,8 +77,8 @@ func TestTheDefaultCapIsOnTheHelpScreen(t *testing.T) {
 	if !strings.Contains(usage, "-n, --limit int") {
 		t.Errorf("help does not spell the cap as an int flag:\n%s", usage)
 	}
-	if want := fmt.Sprintf("(default %d)", defaultRowCap); !strings.HasSuffix(usage, want) {
-		t.Errorf("help does not end with %q:\n%s", want, usage)
+	if !strings.HasSuffix(usage, written) {
+		t.Errorf("help appends something after the written usage:\n%s", usage)
 	}
 }
 
@@ -180,8 +157,8 @@ func TestEveryListingSpellsItsRowCapTheSameWay(t *testing.T) {
 			if flag.Shorthand != "n" {
 				t.Errorf("--limit has shorthand %q, want %q", flag.Shorthand, "n")
 			}
-			if want := strconv.Itoa(defaultRowCap); flag.DefValue != want {
-				t.Errorf("--limit defaults to %q, want %q", flag.DefValue, want)
+			if flag.DefValue != "" {
+				t.Errorf("--limit defaults to %q, want no default", flag.DefValue)
 			}
 			if strings.Contains(flag.Usage, "0 for all") {
 				t.Errorf("--limit is documented as %q", flag.Usage)
