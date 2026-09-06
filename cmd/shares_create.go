@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strconv"
-
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/config"
@@ -12,36 +10,18 @@ import (
 var (
 	shareExpires    string
 	sharePassword   bool
-	shareDownloads  downloadsFlag
 	shareCreateJSON bool
+
+	// A negative download cap survives the wire: the request field is
+	// omitempty, so zero is dropped and anything else is sent — including a
+	// number no caller meant. It then reaches a durable public link that
+	// nothing on screen reports, because the confirmation line is written only
+	// for a cap above zero.
+	//
+	// Zero is kept as written. It is the server's own spelling for an uncapped
+	// link, and it is what an omitted flag sends, so the two agree.
+	shareDownloads = countFlag{noun: "downloads"}
 )
-
-// downloadsFlag is a download cap the parser can refuse. A negative one is not a
-// count, and it survives the wire: the request field is omitempty, so zero is
-// dropped and anything else is sent — including a number no caller meant. It
-// then reaches a public link that nothing on screen reports, because the
-// confirmation line is written only for a cap above zero.
-//
-// Zero is kept as written. It is the server's own spelling for an uncapped
-// link, and it is what an omitted flag sends, so the two agree.
-type downloadsFlag struct {
-	count int
-}
-
-func (d *downloadsFlag) Set(raw string) error {
-	count, err := parseCount(raw, "downloads")
-	if err != nil {
-		return err
-	}
-	d.count = count
-	return nil
-}
-
-// String reports zero, which pflag reads as a zero value and prints no default
-// for. An uncapped link is what the flag's absence already says.
-func (d *downloadsFlag) String() string { return strconv.Itoa(d.count) }
-
-func (d *downloadsFlag) Type() string { return "int" }
 
 var sharesCreateCmd = &cobra.Command{
 	Use:   "create <path>",

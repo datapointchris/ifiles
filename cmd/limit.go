@@ -27,6 +27,35 @@ func parseCount(raw, noun string) (int, error) {
 	return count, nil
 }
 
+// countFlag is a non-negative integer the parser can refuse. pflag's own int
+// accepts a negative and hands it to whatever reads the flag, which for a
+// number of things is never a value anyone meant.
+//
+// What zero means belongs to each flag that uses one — an uncapped link, an
+// unbounded transfer — so this carries only the floor and the noun the refusal
+// names. A flag whose zero is a row count wants limitFlag instead, which can
+// also tell zero from absence.
+type countFlag struct {
+	count int
+	noun  string
+}
+
+func (c *countFlag) Set(raw string) error {
+	count, err := parseCount(raw, c.noun)
+	if err != nil {
+		return err
+	}
+	c.count = count
+	return nil
+}
+
+// String reports the count, and the zero it starts at is one pflag reads as a
+// zero value and prints no default for. What an omitted flag does is the
+// usage line's job.
+func (c *countFlag) String() string { return strconv.Itoa(c.count) }
+
+func (c *countFlag) Type() string { return "int" }
+
 // limitFlag holds the three answers a row cap has: no cap at all, a cap of
 // zero, and a cap above zero. A plain int holds only two, because its zero has
 // to serve as both "no rows" and "the flag was never typed" — and "no rows" is

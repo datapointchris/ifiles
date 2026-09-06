@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/datapointchris/ifiles/filebrowser"
 )
@@ -352,23 +353,37 @@ func TestEveryListingSpellsItsRowCapTheSameWay(t *testing.T) {
 	}
 }
 
-// The floor this change puts on --limit is owed by every integer flag whose
-// value reaches the server, and --downloads reaches a durable public link.
-func TestADownloadCapBelowZeroIsRefusedByTheParser(t *testing.T) {
+// The floor belongs to every integer flag, not to the one that prompted it. A
+// negative is never a number of things, and each of these reaches something
+// that acts on it: a slice expression, a transfer deadline, a durable public
+// link whose cap nothing on screen reports.
+//
+// The walk is what makes this hold for the next integer flag somebody adds.
+// pflag's own int accepts a negative, so a flag declared with IntVar rather
+// than through one of the floored values fails here on the day it lands.
+func TestEveryIntegerFlagRefusesANegative(t *testing.T) {
 	t.Parallel()
 
-	var downloads downloadsFlag
-	command := &cobra.Command{Use: "create"}
-	command.Flags().Var(&downloads, "downloads", "Stop the link working after this many downloads (0 for no limit)")
+	checked := 0
+	for _, command := range descendants(rootCmd) {
+		command.Flags().VisitAll(func(flag *pflag.Flag) {
+			if flag.Value.Type() != "int" {
+				return
+			}
+			checked++
+			// Set is called rather than Parse, so a refusal cannot leave the
+			// package-level flag this command really uses holding -1.
+			if err := flag.Value.Set("-1"); err == nil {
+				t.Errorf("%s --%s accepted -1, and now reads %s",
+					command.CommandPath(), flag.Name, flag.Value)
+			}
+		})
+	}
 
-	if err := command.Flags().Parse([]string{"--downloads=-1"}); err == nil {
-		t.Fatal("--downloads=-1 parsed, want a usage error")
-	}
-	if downloads.count != 0 {
-		t.Errorf("a refused cap was recorded as %d, want 0", downloads.count)
-	}
-	if err := command.Flags().Parse([]string{"--downloads=0"}); err != nil {
-		t.Errorf("--downloads=0 was refused: %v", err)
+	// Three today: --limit, --downloads, --timeout. The count is not pinned,
+	// because a fourth is exactly what this walk exists to reach.
+	if checked == 0 {
+		t.Fatal("no integer flag was found, so this test pins nothing")
 	}
 }
 
