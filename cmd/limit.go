@@ -7,13 +7,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// defaultRowCap bounds every listing. All three of them cross the tunnel, and a
-// listing that reads over a network bounds its default rather than promising a
-// whole set whose size the far end decides.
+// defaultRowCap bounds every listing. Each one reads over a network, and a
+// listing whose rows come from a server bounds its default rather than
+// promising a whole set whose size the far end decides.
 //
-// 100 is the published ceiling on the REST contracts this most resembles, and
-// it is high enough that an ordinary directory or search arrives whole. The cap
-// is there for the pathological set, not for the usual one.
+// 100 is the ceiling the comparable REST contracts publish, and it is high
+// enough that an ordinary directory or search arrives whole. Each listing
+// answers in one response rather than paging, so the cap bounds the screen and
+// not the transfer — which is why it is not one of the low page-size defaults
+// those same contracts use.
 const defaultRowCap = 100
 
 // limitFlag is an int the parser can refuse. A row count below zero is not a
