@@ -16,7 +16,7 @@ const shareTimeFormat = "2006-01-02 15:04"
 
 var (
 	shareListJSON  bool
-	shareListLimit int
+	shareListLimit limitFlag
 )
 
 var sharesListCmd = &cobra.Command{
@@ -47,24 +47,26 @@ it still resolves, and 404s for whoever was sent it.`,
 		defer cancel()
 
 		var shares []filebrowser.Share
+		scope := ""
 		if len(args) == 1 {
-			shares, err = client.SharesForPath(ctx, filebrowser.CleanPath(args[0]))
+			scope = filebrowser.CleanPath(args[0])
+			shares, err = client.SharesForPath(ctx, scope)
 		} else {
 			shares, err = client.Shares(ctx)
 		}
 		if err != nil {
 			return shareError(err)
 		}
-		if shareListLimit > 0 && len(shares) > shareListLimit {
-			shares = shares[:shareListLimit]
-		}
+		found := len(shares)
+		shares = limited(shares, shareListLimit)
 
 		if shareListJSON {
 			return emitJSON(cmd, shares)
 		}
 
 		if len(shares) == 0 {
-			infof(cmd, "No share links.")
+			reason := sharesEmptiness(scope, found)
+			infof(cmd, "%s", emptyShares(scope, reason))
 			return nil
 		}
 
@@ -80,6 +82,31 @@ it still resolves, and 404s for whoever was sent it.`,
 		}
 		return table.Flush()
 	},
+}
+
+// sharesEmptiness reads the two narrowings a listing of links passes through. A
+// path argument asks about one path and a cap of zero asks for no rows, so a
+// bare "no share links" would answer for the whole account in either case.
+func sharesEmptiness(scope string, found int) emptyReason {
+	switch {
+	case found > 0:
+		return cappedToNothing
+	case scope != "":
+		return scopeFiltered
+	default:
+		return populationEmpty
+	}
+}
+
+func emptyShares(scope string, reason emptyReason) string {
+	switch reason {
+	case cappedToNothing:
+		return "--limit 0 asked for no share links."
+	case scopeFiltered:
+		return fmt.Sprintf("No share links for %s.", scope)
+	default:
+		return "No share links."
+	}
 }
 
 // shareExpiryColumn folds three states into one column, because a link that has
@@ -107,6 +134,6 @@ func shareDownloadsColumn(share filebrowser.Share) string {
 
 func init() {
 	sharesListCmd.Flags().BoolVar(&shareListJSON, "json", false, "Output shares as JSON to stdout")
-	sharesListCmd.Flags().IntVarP(&shareListLimit, "limit", "n", 0, "maximum shares to show (0 for all)")
+	registerLimit(sharesListCmd, &shareListLimit, "maximum shares to show (default all)")
 	sharesCmd.AddCommand(sharesListCmd)
 }

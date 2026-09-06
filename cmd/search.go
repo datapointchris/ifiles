@@ -9,7 +9,7 @@ import (
 
 var (
 	searchJSON     bool
-	searchLimit    int
+	searchLimit    limitFlag
 	searchWildcard bool
 )
 
@@ -48,16 +48,16 @@ why a one-character search reports an error rather than everything.`,
 		if err != nil {
 			return err
 		}
-		if searchLimit > 0 && len(results) > searchLimit {
-			results = results[:searchLimit]
-		}
+		matched := len(results)
+		results = limited(results, searchLimit)
 
 		if searchJSON {
 			return emitJSON(cmd, results)
 		}
 
 		if len(results) == 0 {
-			infof(cmd, "No matches.")
+			reason := matchesEmptiness(matched)
+			infof(cmd, "%s", emptyMatches(reason))
 			return nil
 		}
 
@@ -74,9 +74,25 @@ why a one-character search reports an error rather than everything.`,
 	},
 }
 
+// matchesEmptiness separates an index with nothing for the query from a cap of
+// zero, which is the only cap that empties a result set that had rows.
+func matchesEmptiness(matched int) emptyReason {
+	if matched > 0 {
+		return cappedToNothing
+	}
+	return populationEmpty
+}
+
+func emptyMatches(reason emptyReason) string {
+	if reason == cappedToNothing {
+		return "--limit 0 asked for no matches."
+	}
+	return "No matches."
+}
+
 func init() {
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output matches as JSON to stdout")
-	searchCmd.Flags().IntVarP(&searchLimit, "limit", "n", 0, "maximum matches to show (0 for all)")
+	registerLimit(searchCmd, &searchLimit, "maximum matches to show (default all)")
 	searchCmd.Flags().BoolVar(&searchWildcard, "glob", false, "treat the query as a glob pattern")
 	rootCmd.AddCommand(searchCmd)
 }

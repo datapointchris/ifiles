@@ -11,7 +11,7 @@ import (
 
 var (
 	lsJSON  bool
-	lsLimit int
+	lsLimit limitFlag
 	lsAll   bool
 	lsLong  bool
 )
@@ -54,6 +54,7 @@ UI's per-account setting.`,
 		}
 
 		entries := listing.Entries()
+		present := len(entries)
 		if !lsAll {
 			visible := entries[:0]
 			for _, entry := range entries {
@@ -63,16 +64,16 @@ UI's per-account setting.`,
 			}
 			entries = visible
 		}
-		if lsLimit > 0 && len(entries) > lsLimit {
-			entries = entries[:lsLimit]
-		}
+		unhidden := len(entries)
+		entries = limited(entries, lsLimit)
 
 		if lsJSON {
 			return emitJSON(cmd, entries)
 		}
 
 		if len(entries) == 0 {
-			infof(cmd, "%s is empty.", remotePath)
+			reason := listingEmptiness(present, unhidden)
+			infof(cmd, "%s", emptyListing(remotePath, reason))
 			return nil
 		}
 
@@ -96,6 +97,31 @@ UI's per-account setting.`,
 	},
 }
 
+// listingEmptiness reads the two counts a listing passes through. A cap of zero
+// is the only remaining narrowing once both are non-zero, since every other cap
+// keeps a row when there was one to keep.
+func listingEmptiness(present, unhidden int) emptyReason {
+	switch {
+	case present == 0:
+		return populationEmpty
+	case unhidden == 0:
+		return hiddenFiltered
+	default:
+		return cappedToNothing
+	}
+}
+
+func emptyListing(remotePath string, reason emptyReason) string {
+	switch reason {
+	case hiddenFiltered:
+		return fmt.Sprintf("%s holds only hidden entries; -a lists them.", remotePath)
+	case cappedToNothing:
+		return "--limit 0 asked for no entries."
+	default:
+		return fmt.Sprintf("%s is empty.", remotePath)
+	}
+}
+
 // name marks directories with a trailing slash, which is the handle a caller
 // pastes back into the next command — `ifiles list /photos/2026/` works, and the
 // slash is what says it will.
@@ -108,7 +134,7 @@ func name(entry filebrowser.Item) string {
 
 func init() {
 	listCmd.Flags().BoolVar(&lsJSON, "json", false, "Output entries as JSON to stdout")
-	listCmd.Flags().IntVarP(&lsLimit, "limit", "n", 0, "maximum entries to list (0 for all)")
+	registerLimit(listCmd, &lsLimit, "maximum entries to list (default all)")
 	listCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
 	listCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
 	rootCmd.AddCommand(listCmd)
