@@ -63,10 +63,10 @@ func TestACapBelowZeroIsRefusedByTheParser(t *testing.T) {
 	}
 }
 
-// pflag appends a flag's default to its usage line, and the default it would
-// append for an uncapped listing is 0 — the value that now asks for no rows. So
-// the help screen would teach the reading this type removes. The line therefore
-// has to end where the written usage ends, with nothing added after it.
+// pflag appends a flag's default to its usage line unless it reads that default
+// as a zero value, and any cap it would print is a number the reader then takes
+// for the uncapped answer. The line has to end where the written usage ends,
+// with nothing added after it.
 func TestAnUncappedListingPrintsNoDefault(t *testing.T) {
 	t.Parallel()
 
