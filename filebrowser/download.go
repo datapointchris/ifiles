@@ -89,10 +89,11 @@ func (c *Client) Download(ctx context.Context, req DownloadRequest) (*Download, 
 		payload, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		_ = resp.Body.Close()
 		return nil, &APIError{
-			Status:  resp.StatusCode,
-			Method:  http.MethodGet,
-			Path:    "/resources/download",
-			Message: errorMessage(payload),
+			Status:   resp.StatusCode,
+			Method:   http.MethodGet,
+			Path:     "/resources/download",
+			Message:  errorMessage(payload),
+			Resource: resourceOf(query),
 		}
 	}
 

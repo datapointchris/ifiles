@@ -61,9 +61,6 @@ func moveOrCopy(cmd *cobra.Command, action, src, dst string, override bool) erro
 	defer cancel()
 
 	if _, err := client.Stat(ctx, from); err != nil {
-		if filebrowser.IsNotFound(err) {
-			return fmt.Errorf("%s does not exist on the server", from)
-		}
 		return err
 	}
 	if info, err := client.Stat(ctx, to); err == nil && info.IsDir() {
