@@ -47,9 +47,6 @@ UI's per-account setting.`,
 
 		listing, err := client.List(ctx, remotePath)
 		if err != nil {
-			if filebrowser.IsNotFound(err) {
-				return fmt.Errorf("%s does not exist on the server", remotePath)
-			}
 			return err
 		}
 

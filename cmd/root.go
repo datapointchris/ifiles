@@ -70,7 +70,7 @@ func run() int {
 	defer stop()
 
 	autoConfig := autoupdate.Config{Update: updateConfig()}
-	if err := goclikit.Execute(ctx, rootCmd, autoConfig); err != nil {
+	if err := goclikit.Execute(ctx, rootCmd, autoConfig, goclikit.WithNotFound(notFound)); err != nil {
 		if !errors.Is(err, goclikit.ErrReported) {
 			fmt.Fprintln(os.Stderr, err)
 		}

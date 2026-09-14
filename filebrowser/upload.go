@@ -179,10 +179,11 @@ func (c *Client) putChunk(ctx context.Context, chunk []byte, req UploadRequest, 
 		return fmt.Errorf("%w: resume from offset %d", ErrUploadPaused, offset)
 	case resp.StatusCode >= 400:
 		return &APIError{
-			Status:  resp.StatusCode,
-			Method:  http.MethodPost,
-			Path:    "/resources",
-			Message: errorMessage(payload),
+			Status:   resp.StatusCode,
+			Method:   http.MethodPost,
+			Path:     "/resources",
+			Message:  errorMessage(payload),
+			Resource: resourceOf(query),
 		}
 	}
 	return nil

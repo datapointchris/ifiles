@@ -76,6 +76,19 @@ type APIError struct {
 	Method  string
 	Path    string
 	Message string
+
+	// Resource is the path on the server the request was about, which Path is
+	// not: Path is the route, and every resource route is one of a handful
+	// (`/resources`, `/resources/download`) with the caller's path in the query.
+	//
+	// A not-found has to name what was missing, and on this API the server
+	// usually cannot. FileBrowser writes a JSON body only when a handler returns
+	// an error value, so a 404 often arrives bare. The request knows, so the
+	// error carries it.
+	//
+	// Empty when the route is not about one resource — a health check, or a
+	// download of several files at once.
+	Resource string
 }
 
 func (e *APIError) Error() string {
@@ -178,10 +191,11 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 
 	if resp.StatusCode >= 400 {
 		return &APIError{
-			Status:  resp.StatusCode,
-			Method:  method,
-			Path:    path,
-			Message: errorMessage(payload),
+			Status:   resp.StatusCode,
+			Method:   method,
+			Path:     path,
+			Message:  errorMessage(payload),
+			Resource: resourceOf(query),
 		}
 	}
 	if out == nil || len(payload) == 0 {
@@ -210,4 +224,21 @@ func errorMessage(payload []byte) string {
 // query returns the base query parameters every resource route needs.
 func (c *Client) query(path string) url.Values {
 	return url.Values{"path": []string{path}, "source": []string{c.source}}
+}
+
+// resourceOf returns the single path on the server a request concerned, for
+// [APIError.Resource].
+//
+// Resource routes carry it as `path`; the download route carries one or more as
+// `file`. Several files is not one subject, so it answers empty rather than
+// picking the first — a not-found naming one of three requested paths is worse
+// than one naming none, because it reads as a claim about that path.
+func resourceOf(query url.Values) string {
+	if path := query.Get("path"); path != "" {
+		return path
+	}
+	if files := query["file"]; len(files) == 1 {
+		return files[0]
+	}
+	return ""
 }

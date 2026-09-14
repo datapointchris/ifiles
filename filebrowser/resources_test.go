@@ -3,6 +3,7 @@ package filebrowser
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -308,5 +309,65 @@ func TestCleanPath(t *testing.T) {
 		if got := CleanPath(tc.input); got != tc.want {
 			t.Errorf("CleanPath(%q) = %q, want %q", tc.input, got, tc.want)
 		}
+	}
+}
+
+func TestNotFoundCarriesTheRequestedPathNotTheRoute(t *testing.T) {
+	t.Parallel()
+
+	// The server writes a JSON body only when a handler returns an error value,
+	// so this 404 arrives bare -- which is the case the field exists for.
+	backend := &recordingServer{status: http.StatusNotFound}
+	client := newRecordingClient(t, backend)
+	_, err := client.Stat(context.Background(), "/photos/missing.jpg")
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("error = %v, want APIError", err)
+	}
+	if apiErr.Resource != "/photos/missing.jpg" {
+		t.Errorf("Resource = %q, want the path the caller asked for", apiErr.Resource)
+	}
+	// Path is the route every resource call shares. Reading it as the subject is
+	// what this field exists to stop, so the two must not be confusable.
+	if apiErr.Path != "/resources" {
+		t.Errorf("Path = %q, want the route", apiErr.Path)
+	}
+}
+
+func TestADownloadOfSeveralFilesNamesNoSingleResource(t *testing.T) {
+	t.Parallel()
+
+	backend := &recordingServer{status: http.StatusNotFound}
+	client := newRecordingClient(t, backend)
+	_, err := client.Download(context.Background(), DownloadRequest{
+		Paths:   []string{"/a.txt", "/b.txt"},
+		Archive: ArchiveZip,
+	})
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("error = %v, want APIError", err)
+	}
+	// Naming one of two requested paths reads as a claim about that path. Empty
+	// is what leaves the error alone rather than inventing a subject.
+	if apiErr.Resource != "" {
+		t.Errorf("Resource = %q, want empty for a multi-file download", apiErr.Resource)
+	}
+}
+
+func TestADownloadOfOneFileNamesIt(t *testing.T) {
+	t.Parallel()
+
+	backend := &recordingServer{status: http.StatusNotFound}
+	client := newRecordingClient(t, backend)
+	_, err := client.Download(context.Background(), DownloadRequest{Paths: []string{"/only.txt"}})
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("error = %v, want APIError", err)
+	}
+	if apiErr.Resource != "/only.txt" {
+		t.Errorf("Resource = %q, want the one requested path", apiErr.Resource)
 	}
 }

@@ -36,9 +36,6 @@ This is the file's contents, not a description of it.`,
 
 		info, err := client.Stat(ctx, remotePath)
 		if err != nil {
-			if filebrowser.IsNotFound(err) {
-				return fmt.Errorf("%s does not exist on the server", remotePath)
-			}
 			return err
 		}
 		if info.IsDir() {
