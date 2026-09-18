@@ -1,9 +1,5 @@
 # ifiles — FileBrowser Quantum CLI
 
-Universal rules live in `~/.claude/CLAUDE.md`; fleet standards in `standards/`
-(`go.md`, `cli-design.md`, `release.md`, `repo-structure.md`, `testing.md`). This file
-holds only what is specific to ifiles.
-
 ## What this talks to
 
 **FileBrowser Quantum** (`gtsteffaniak/filebrowser`), not the original
@@ -22,11 +18,8 @@ missing from it may still exist — `GET /settings/sources` does.
 latest: upstream's lineage is not chronological, so `v1.5.2-beta` is *older* by date
 than `v1.5.0-stable`, and `main` is a third different API again.
 
-That tag floated (`stable`) until 2026-07-29, which is how the instance came to run
-four stable releases behind for four months: `restart: unless-stopped` means a floating
-tag only moves on a *pull*, so the running API fell behind a compose file that read as
-current. A pin records what *should* be deployed, so fingerprint the live router
-whenever the answer matters.
+A pin records what *should* be deployed, and under `restart: unless-stopped` a tag moves
+only on a *pull*. Fingerprint the live router whenever the answer matters.
 
 It answers unauthenticated, which is what makes that checkable. A registered route
 replies `401` with a JSON body; an unregistered one replies Go's plain-text
@@ -60,7 +53,7 @@ deployed version to a range without shell access to the container.
   a stat of the destination 404s until the final chunk lands. That is why the
   `resume` package exists. The server also **seeks to whatever offset it is given
   without verifying the temp file is that long**, so a wrong offset yields a
-  silently corrupt file — hence the size-and-mtime guard in `resume.Lookup`.
+  silently corrupt file — hence the size-and-mtime guard in `resume.Store.Lookup`.
 - **Chunk bodies are buffered before sending, deliberately.** A reader that ends
   early breaks the connection mid-body, the server reads that as a failed chunk, and
   with no pause registered it deletes the whole partial upload. Streaming straight
@@ -115,7 +108,7 @@ payload length happens to be a multiple of three.
 
 ## Shell completion
 
-Remote paths complete over the API, so `ifiles __complete get /pho` is a real request made
+Remote paths complete over the API, so `ifiles __complete download /pho` is a real request made
 by a fresh process on every Tab. Three things about that are not guessable:
 
 - **A candidate must keep the directory prefix exactly as typed.** Bash filters the
@@ -128,8 +121,8 @@ by a fresh process on every Tab. Three things about that are not guessable:
   tunnel down, expired token — returns `ShellCompDirectiveError` with no output. Nothing on
   the completion path may write to stdout.
 - **Flag completions register in the file that defines the flag**, not in `complete.go`.
-  Init functions run in filename order, so `complete.go` runs before `get.go`, `put.go`, and
-  `root.go` have created the flags to attach to. `mustCompleteFlag` panics rather than
+  Init functions run in filename order, so `complete.go` runs before `download.go`, `root.go`,
+  `shares_create.go` and `upload.go` have created the flags to attach to. `mustCompleteFlag` panics rather than
   discarding cobra's error, so a renamed flag fails on the first run instead of silently
   completing nothing. Assigning `ValidArgsFunction` centrally *is* safe — command variables
   are constructed before any init runs.
@@ -166,10 +159,8 @@ GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 
 
 ## Where it runs
 
-Any personal machine, plus the work WSL box, which is listed in the
-`wsl-work-workstation` manifest in `~/dotfiles` and installed from the release
-tarball by the offline bundler. It is a git-only node — not an SSH or Syncthing peer
-— so nothing here can be installed or tested on it from the personal desk.
+On any personal machine, plus one git-only node that cannot be reached from here, so nothing can
+be installed or tested on it from this desk.
 
 The server is reachable at `files.ichrisbirch.com` through the
 Cloudflare tunnel, which is the constraint the whole design turns on: **the free tier
@@ -190,21 +181,11 @@ short read does not destroy already-uploaded bytes.
 
 ## Never write the breaking-change trailer in a commit message
 
-The words `BREAKING CHANGE` — either number, colon or not, subject or body — cut a major release
-here, and a major on this repo is an outage rather than a version. `commit-analyzer-cz` matches
-them unanchored against the raw message and ORs the result with the configured major rules, so
-`.semrelrc` cannot stop it and it majors even a `fix:` commit.
-
-The module path carries no `/vN` suffix, so once a major exists `go install …@latest` cannot see it
-and silently resolves the highest v1 instead — `dotfiles check` reports the tool stale forever
-while `apply` exits 0 having installed nothing. Every already-installed binary is stranded too:
-`goselfupdate` refuses a lower version and reports "already up to date". Recovery is a reinstall on
-each machine, and it is not a rewrite — branch protection refuses one on `main`, and the offending
-commit re-cuts the major on every push until a tag above it takes it out of range.
-
-**The ban covers a commit that merely discusses the trailer.** One explaining this exact caveat cut
-a fresh major on push. Name it some other way — "that marker" — and never quote it.
-
-Deliberate majors use `chore(release-major)`, the one subject `.semrelrc` leaves as a major. Full
-reasoning and the reset procedure: `standards/release.md` § "Never write the breaking-change
-trailer in a Go repo's commit message".
+Those two words anywhere in a message cut a major here, and a major on a Go module
+with no `/vN` path is an outage: `go install …@latest` stops seeing the tag, every
+installed binary is stranded, and recovery is a reinstall on each machine. The
+analyzer matches unanchored and ORs past `.semrelrc`, so nothing switches it off.
+A commit that merely *discusses* the trailer cuts one too — say "that marker".
+Deliberate majors are `chore(release-major)`. Reset procedure and the measurement:
+`standards/release.md` § "Never write the breaking-change trailer in a Go repo's
+commit message".
