@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/validate.yml
 
   vulnerabilities:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
 
