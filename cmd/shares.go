@@ -8,12 +8,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/datapointchris/goclikit"
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/filebrowser"
 )
 
-var sharesCmd = &cobra.Command{
+var sharesCmd = goclikit.AsNamespace(&cobra.Command{
 	Use:     "shares",
 	GroupID: groupAuth,
 	Short:   "Create and revoke public share links",
@@ -31,13 +32,7 @@ message at all, so these commands say so themselves.`,
 	Example: `  ifiles shares create /photos/wedding --expires 7d
   ifiles shares list
   ifiles shares delete /public/share/T7bQ3xk`,
-	// Help is never wrong; a bare `ifiles shares` teaches the verbs rather than
-	// erroring on a missing subcommand.
-	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
-	},
-}
+})
 
 // shareError makes the share routes' overloaded 403 readable.
 //

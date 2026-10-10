@@ -69,8 +69,7 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	autoConfig := autoupdate.Config{Update: updateConfig()}
-	if err := goclikit.Execute(ctx, rootCmd, autoConfig, goclikit.WithNotFound(notFound)); err != nil {
+	if err := execute(ctx, autoupdate.Config{Update: updateConfig()}); err != nil {
 		if !errors.Is(err, goclikit.ErrReported) {
 			fmt.Fprintln(os.Stderr, err)
 		}
@@ -82,6 +81,12 @@ func run() int {
 		return 1
 	}
 	return 0
+}
+
+// execute is run without the process around it, so a test drives the shipped
+// command line with the version check suppressed.
+func execute(ctx context.Context, autoConfig autoupdate.Config) error {
+	return goclikit.Execute(ctx, rootCmd, autoConfig, goclikit.WithNotFound(notFound))
 }
 
 // Command groups keep help readable as verbs accumulate, and separating reading

@@ -1,6 +1,60 @@
 package cmd
 
-import "testing"
+import (
+	"context"
+	"errors"
+	"io"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/datapointchris/goclikit"
+	"github.com/datapointchris/goselfupdate/autoupdate"
+)
+
+// runLine drives a command line through execute, the path the shipped binary
+// takes. goclikit resolves the command from os.Args, so the line goes there
+// rather than through SetArgs.
+func runLine(t *testing.T, args ...string) error {
+	t.Helper()
+	original := os.Args
+	os.Args = append([]string{"ifiles"}, args...)
+	rootCmd.SetOut(io.Discard)
+	rootCmd.SetErr(io.Discard)
+	t.Cleanup(func() {
+		os.Args = original
+		rootCmd.SetOut(nil)
+		rootCmd.SetErr(nil)
+	})
+	return execute(context.Background(), autoupdate.Config{Suppress: true})
+}
+
+// Cobra parses flags and answers --help before it validates a group's
+// arguments, so without the namespace marking a mistyped subcommand was
+// reported as the flag after it, or answered with the group's help and exit 0.
+func TestAnUnknownWordInAGroupIsRefusedWhateverFollowsIt(t *testing.T) {
+	for _, args := range [][]string{
+		{"shares", "bogus"},
+		{"shares", "bogus", "--json"},
+		{"shares", "bogus", "--help"},
+		{"auth", "bogus"},
+		{"auth", "bogus", "--json"},
+		{"auth", "bogus", "--help"},
+	} {
+		err := runLine(t, args...)
+		if !errors.Is(err, goclikit.ErrUsage) || !strings.Contains(err.Error(), `unknown command "bogus"`) {
+			t.Errorf("%v answered %v, want a usage error refusing \"bogus\"", args, err)
+		}
+	}
+}
+
+func TestABareGroupShowsItsHelp(t *testing.T) {
+	for _, group := range []string{"shares", "auth"} {
+		if err := runLine(t, group); err != nil {
+			t.Errorf("bare %q failed: %v", group, err)
+		}
+	}
+}
 
 // countSuggestions tallies what the root command offers for a mistyped word.
 func countSuggestions(typed string) (map[string]int, []string) {

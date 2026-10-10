@@ -1,8 +1,11 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/datapointchris/goclikit"
+	"github.com/spf13/cobra"
+)
 
-var authCmd = &cobra.Command{
+var authCmd = goclikit.AsNamespace(&cobra.Command{
 	Use:     "auth",
 	GroupID: groupAuth,
 	Short:   "Store and check the API token ifiles authenticates with",
@@ -20,13 +23,7 @@ cannot run there at all. "auth status" reports which one a token came from.`,
 	Example: `  ifiles auth login              paste a token minted in the web UI
   ifiles auth status             is the server up and the token still valid
   ifiles auth logout             forget the token for this server`,
-	// Help is never wrong; a bare `ifiles auth` teaches the verbs rather than
-	// erroring on a missing subcommand.
-	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
-	},
-}
+})
 
 func init() {
 	rootCmd.AddCommand(authCmd)
