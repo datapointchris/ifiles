@@ -59,7 +59,9 @@ thing being read: `ifiles download REMOTE [LOCAL]`, `ifiles upload LOCAL [REMOTE
 Remote paths are absolute from the source root. The server, the source and the chunk size come from
 config, so a command never has to name them. `--source` and `--chunk-size` override one run. Every
 listing takes `--json`. `--no-input` never prompts, and fails naming the flag that would have
-answered. `auth` or `shares` run bare prints its subcommands, and every command takes `--help`.
+answered. Any command run with none of the arguments it needs prints its help, and `auth` or
+`shares` run bare prints its subcommands. A wrong argument count exits 2, which marks the command
+line rather than the run as the thing to fix.
 
 ## Which surface answers which question
 
