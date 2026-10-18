@@ -259,7 +259,8 @@ func completeShareHashes(cmd *cobra.Command, args []string, toComplete string) (
 //
 // It is called from the init of whichever file defines the flag, not from this
 // one: init functions run in filename order, so anything registered here would
-// run before get.go and put.go had created the flags to register against.
+// run before download.go, root.go, shares_create.go and upload.go had created the
+// flags to register against.
 func mustCompleteFlag(cmd *cobra.Command, flag string, fn cobra.CompletionFunc) {
 	if err := cmd.RegisterFlagCompletionFunc(flag, fn); err != nil {
 		panic(err)

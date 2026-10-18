@@ -12,7 +12,7 @@ func newTestStore(t *testing.T) *Store {
 	return NewStoreAt(filepath.Join(t.TempDir(), "transfers.json"))
 }
 
-// uploadRecord is the shape `put` builds: fingerprinted by the local file.
+// uploadRecord is the shape `upload` builds: fingerprinted by the local file.
 func uploadRecord(modified time.Time) Record {
 	return Record{
 		Kind:            Upload,
@@ -24,7 +24,7 @@ func uploadRecord(modified time.Time) Record {
 	}
 }
 
-// downloadRecord is the shape `get` builds: fingerprinted by the remote object.
+// downloadRecord is the shape `download` builds: fingerprinted by the remote object.
 func downloadRecord(modified time.Time) Record {
 	return Record{
 		Kind:            Download,
