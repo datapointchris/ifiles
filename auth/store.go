@@ -94,8 +94,9 @@ func (t *TokenStore) Load(serverURL string) (string, Backend, error) {
 		return v, BackendEnv, nil
 	}
 
-	// The keyring wins whenever it actually holds something, so a host that gains
-	// a Secret Service later moves onto it without a re-login.
+	// The keyring wins whenever it actually holds something. A host that gains a
+	// Secret Service later keeps reading the file until the next `auth login`
+	// saves the token into the keyring, and from then on this branch answers.
 	token, keyringErr := t.keyring.Get(keyringService, key(serverURL))
 	if keyringErr == nil && strings.TrimSpace(token) != "" {
 		return token, BackendKeyring, nil

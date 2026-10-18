@@ -148,9 +148,11 @@ provider — the call fails with `exec: "dbus-launch": executable file not found
 $PATH` before any request is made, which names nothing a user can act on. So the
 store falls back to a 0600 file and `Save` returns the `Backend` it used rather than
 swallowing it: a downgrade from keychain to plaintext has to be visible at the moment
-it happens. `Load` prefers the keyring whenever it holds a token, so a host that
-gains a provider later moves onto it with no re-login, and `Delete` clears both —
-otherwise a file token outlives the logout that was meant to remove it. The
+it happens. `Load` prefers the keyring whenever it holds a token. Nothing copies a
+file token across, so a host that gains a provider later moves onto it at the next
+`auth login`, whose `Save` lands in the keyring. The file copy stays behind until
+`Delete`, which clears both — otherwise a file token outlives the logout that was
+meant to remove it. The
 keyringless path is reproducible without WSL:
 
 ```bash
