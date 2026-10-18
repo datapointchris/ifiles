@@ -58,9 +58,8 @@ thing being read: `ifiles download REMOTE [LOCAL]`, `ifiles upload LOCAL [REMOTE
 
 Remote paths are absolute from the source root. The server, the source and the chunk size come from
 config, so a command never has to name them. `--source` and `--chunk-size` override one run. Every
-listing takes `--json`. `--no-input` never prompts, and
-fails naming the flag that would have answered. `auth` and `shares` run bare print their
-subcommands, and every command takes `--help`.
+listing takes `--json`. `--no-input` never prompts, and fails naming the flag that would have
+answered. `auth` or `shares` run bare prints its subcommands, and every command takes `--help`.
 
 ## Which surface answers which question
 
@@ -245,8 +244,8 @@ different file.
   pass = <API token>       # obscured via `rclone obscure`
   ```
 
-  Good for browsing and small files. It cannot upload over 100 MB through the tunnel, which is what
-  `ifiles upload` is for.
+  Good for browsing and small files. Behind a proxy that caps request bodies, such as Cloudflare's
+  free tier, it cannot upload past the cap. That is what `ifiles upload` is for.
 - **No user administration.** That is the server binary's job.
 - **No token management.** `POST` and `DELETE /api/auth/token` exist and an API token may call them.
   Minting and revoking are rare, and the *first* token has to come from the web UI regardless. A
@@ -256,8 +255,8 @@ different file.
 
 ## The published API documentation is wrong in places that matter
 
-ifiles is written against the server's Go source at tag `v1.5.0-stable`, not against the docs
-site. The route table and every wire shape come from that source. The docs are wrong or silent in
+ifiles is written against the server's Go source, at the tag `filebrowser/client.go` names, not
+against the docs site. The route table and every wire shape come from that source. The docs are wrong or silent in
 these places:
 
 | Documented | Actually |
