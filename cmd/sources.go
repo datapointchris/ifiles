@@ -55,5 +55,4 @@ marked.`,
 
 func init() {
 	sourcesCmd.Flags().BoolVar(&sourcesJSON, "json", false, "Output sources as JSON to stdout")
-	rootCmd.AddCommand(sourcesCmd)
 }

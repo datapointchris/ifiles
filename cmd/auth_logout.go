@@ -39,7 +39,3 @@ working, revoke it in the web UI under Settings, then API tokens.`,
 		return nil
 	},
 }
-
-func init() {
-	authCmd.AddCommand(authLogoutCmd)
-}

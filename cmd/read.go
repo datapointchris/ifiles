@@ -52,7 +52,3 @@ This is the file's contents, not a description of it.`,
 		return err
 	},
 }
-
-func init() {
-	rootCmd.AddCommand(readCmd)
-}

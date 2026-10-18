@@ -168,5 +168,4 @@ func shareDownloadsColumn(share filebrowser.Share) string {
 func init() {
 	sharesListCmd.Flags().BoolVar(&shareListJSON, "json", false, "Output shares as JSON to stdout")
 	registerLimit(sharesListCmd, &shareListLimit, "share links")
-	sharesCmd.AddCommand(sharesListCmd)
 }

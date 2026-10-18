@@ -93,5 +93,4 @@ func pastTense(action string) string {
 func init() {
 	moveCmd.Flags().BoolVar(&moveOverride, "override", false, "replace the destination if it exists")
 	copyCmd.Flags().BoolVar(&copyOverride, "override", false, "replace the destination if it exists")
-	rootCmd.AddCommand(moveCmd, copyCmd)
 }

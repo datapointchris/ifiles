@@ -151,5 +151,4 @@ func readToken(cmd *cobra.Command, fromStdin bool) (string, error) {
 
 func init() {
 	authLoginCmd.Flags().SortFlags = false
-	authCmd.AddCommand(authLoginCmd)
 }

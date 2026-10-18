@@ -91,5 +91,4 @@ func confirmDelete(cmd *cobra.Command, remotePath string, info *filebrowser.List
 
 func init() {
 	deleteCmd.Flags().BoolVarP(&rmForce, "force", "f", false, "delete without confirmation")
-	rootCmd.AddCommand(deleteCmd)
 }

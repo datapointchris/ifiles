@@ -110,5 +110,4 @@ func init() {
 		[]string{"1h", "12h", "24h", "7d", "30d"},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
-	sharesCmd.AddCommand(sharesCreateCmd)
 }

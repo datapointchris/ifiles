@@ -234,5 +234,4 @@ func init() {
 		[]string{"4MiB", "8MiB", "16MiB", "32MiB", "64MiB"},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
-	rootCmd.AddCommand(uploadCmd)
 }

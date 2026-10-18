@@ -141,5 +141,4 @@ func init() {
 	searchCmd.Flags().BoolVar(&searchJSON, "json", false, "Output matches as JSON to stdout")
 	registerLimit(searchCmd, &searchLimit, "matches")
 	searchCmd.Flags().BoolVar(&searchWildcard, "glob", false, "treat the query as a glob pattern")
-	rootCmd.AddCommand(searchCmd)
 }

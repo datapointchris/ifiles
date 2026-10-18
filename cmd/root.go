@@ -11,6 +11,7 @@ import (
 
 	"github.com/datapointchris/goclikit"
 	"github.com/datapointchris/goselfupdate/autoupdate"
+	"github.com/datapointchris/gotermstyle/cobrahelp"
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/auth"
@@ -113,6 +114,18 @@ func init() {
 		&cobra.Group{ID: groupAuth, Title: "Server and access"},
 		&cobra.Group{ID: groupTool, Title: "Managing ifiles itself"},
 	)
+	update := goclikit.UpdateCommand(updateConfig())
+	update.GroupID = groupTool
+	// Each group runs in the order a session reaches for its verbs, as the
+	// examples above do: look before fetching, create before rearranging, and
+	// delete last.
+	rootCmd.AddCommand(
+		listCmd, downloadCmd, readCmd, searchCmd,
+		uploadCmd, mkdirCmd, copyCmd, moveCmd, deleteCmd,
+		authCmd, sourcesCmd, sharesCmd,
+		update, versionCmd,
+	)
+	cobrahelp.Install(rootCmd)
 
 	flags := rootCmd.PersistentFlags()
 	flags.StringVarP(&configPath, "config", "c", "", "path to config file (default is $XDG_CONFIG_HOME/ifiles/config.toml)")

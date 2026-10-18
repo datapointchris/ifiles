@@ -174,5 +174,4 @@ func init() {
 	registerLimit(listCmd, &lsLimit, "entries")
 	listCmd.Flags().BoolVarP(&lsAll, "all", "a", false, "include hidden entries")
 	listCmd.Flags().BoolVarP(&lsLong, "long", "l", false, "show size and modification time")
-	rootCmd.AddCommand(listCmd)
 }

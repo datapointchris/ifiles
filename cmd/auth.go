@@ -25,5 +25,5 @@ cannot run there at all. "auth status" reports which one a token came from.`,
 })
 
 func init() {
-	rootCmd.AddCommand(authCmd)
+	authCmd.AddCommand(authLoginCmd, authStatusCmd, authLogoutCmd)
 }

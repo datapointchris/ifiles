@@ -182,5 +182,4 @@ func finishStatus(cmd *cobra.Command, report statusReport, cause error) error {
 
 func init() {
 	authStatusCmd.Flags().BoolVar(&statusJSON, "json", false, "Output the status report as JSON to stdout")
-	authCmd.AddCommand(authStatusCmd)
 }

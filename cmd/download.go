@@ -245,5 +245,4 @@ func init() {
 	))
 	downloadCmd.Flags().BoolVar(&getOverride, "override", false, "replace an existing local file")
 	downloadCmd.Flags().BoolVar(&getNoResume, "no-resume", false, "ignore a partial download and start over")
-	rootCmd.AddCommand(downloadCmd)
 }

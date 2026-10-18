@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/datapointchris/goclikit"
 	"github.com/datapointchris/goselfupdate"
 )
 
@@ -15,10 +14,4 @@ func updateConfig() goselfupdate.Config {
 		Binary:  "ifiles",
 		Version: buildVersion(),
 	}
-}
-
-func init() {
-	updateCmd := goclikit.UpdateCommand(updateConfig())
-	updateCmd.GroupID = groupTool
-	rootCmd.AddCommand(updateCmd)
 }

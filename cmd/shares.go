@@ -81,5 +81,5 @@ func shareHash(argument string) (string, error) {
 }
 
 func init() {
-	rootCmd.AddCommand(sharesCmd)
+	sharesCmd.AddCommand(sharesCreateCmd, sharesListCmd, sharesDeleteCmd)
 }

@@ -58,7 +58,3 @@ type shareNotFoundError struct {
 func (e *shareNotFoundError) Error() string {
 	return "no share with hash " + e.Hash + "; `ifiles shares list` shows the live ones"
 }
-
-func init() {
-	sharesCmd.AddCommand(sharesDeleteCmd)
-}

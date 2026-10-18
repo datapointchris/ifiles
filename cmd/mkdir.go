@@ -40,7 +40,3 @@ no -p to pass.`,
 		return nil
 	},
 }
-
-func init() {
-	rootCmd.AddCommand(mkdirCmd)
-}
