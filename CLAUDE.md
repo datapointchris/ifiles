@@ -13,10 +13,10 @@ wrong about the upload mechanism and about at least one route path. The router i
 `backend/swagger/docs/swagger.json` covers only annotated handlers, so a route
 missing from it may still exist — `GET /settings/sources` does.
 
-**Read the source at the version the server actually runs — the pinned tag in
-`~/homelab/containers/files-lxc/docker-compose.yml`.** Not what `gh release list` calls
-latest: upstream's lineage is not chronological, so `v1.5.2-beta` is *older* by date
-than `v1.5.0-stable`, and `main` is a third different API again.
+**Read the source at the version the server actually runs — the image tag its
+deployment pins.** Not what `gh release list` calls latest: upstream's lineage is not
+chronological, so `v1.5.2-beta` is *older* by date than `v1.5.0-stable`, and `main` is
+a third different API again.
 
 A pin records what *should* be deployed, and under `restart: unless-stopped` a tag moves
 only on a *pull*. Fingerprint the live router whenever the answer matters.
@@ -26,7 +26,7 @@ replies `401` with a JSON body; an unregistered one replies Go's plain-text
 `404 page not found`, which is how to tell "needs a token" from "does not exist":
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://files.ichrisbirch.com/api/settings/sources
+curl -s -o /dev/null -w '%{http_code}\n' https://files.example.com/api/settings/sources
 ```
 
 Version-fingerprint it with a route that moved. `GET /settings/sources` and
@@ -62,13 +62,13 @@ deployed version to a range without shell access to the container.
 - **`GET /resources/download` takes repeated `?file=`**, not `?path=`. It is the one
   route that breaks the convention. It also builds and streams an archive itself for
   a directory or several paths, so `POST /resources/archive` is not needed.
-- **Every resource route requires `source`.** Quantum is multi-source; this instance
-  defines one rooted at `/files`.
+- **Every resource route requires `source`.** Quantum is multi-source, and a server
+  may define several.
 - **`PATCH /resources` reports failures inside a 200.** The body carries
   `succeeded`/`failed` arrays, so checking the status alone reports success on a
   move that did not happen.
 - **The token goes in the `Authorization` header only.** The server also accepts
-  `?auth=<token>`, which would put the secret in Traefik's access log.
+  `?auth=<token>`, which would put the secret in a reverse proxy's access log.
 - **A 403 on the share routes means three unrelated things**, and the status
   alone cannot say which. A missing `share` permission comes from
   `withPermShareHelper`, which returns the status with a *nil error* — so
@@ -118,7 +118,7 @@ by a fresh process on every Tab. Three things about that are not guessable:
   re-attaches the literal half; `TestCompletionKeepsTheDirectoryExactlyAsTyped` pins it.
 - **Stdout is the candidate list.** A diagnostic printed there is offered as a suggestion
   and a returned error lands in the user's command line, so every failure — no token,
-  tunnel down, expired token — returns `ShellCompDirectiveError` with no output. Nothing on
+  server unreachable, expired token — returns `ShellCompDirectiveError` with no output. Nothing on
   the completion path may write to stdout.
 - **Flag completions register in the file that defines the flag**, not in `complete.go`.
   Init functions run in filename order, so `complete.go` runs before `download.go`, `root.go`,
@@ -132,15 +132,17 @@ losing it costs one request, which is what distinguishes it from the resume offs
 
 ## Authentication constraint
 
-The instance is OIDC-only (`auth.methods.password.enabled: false`), so there is no
-password grant to script against, and an Authelia token is not what the API accepts —
-the JWT it wants is minted by FileBrowser after its own OIDC callback.
+A server can be OIDC-only (`auth.methods.password.enabled: false`), and then there is
+no password grant to script against. The identity provider's own token is not what the
+API accepts either — the JWT it wants is minted by FileBrowser after its own OIDC
+callback. ifiles therefore authenticates with an API token alone, which works whatever
+login methods a server enables.
 
 So the first API token must be created in the browser UI, and **that requires the
-account to hold the `api` permission**, which is independent of `admin` and not
-granted by the deployed `userDefaults`. `ApplyUserDefaults` runs only when a user is
-auto-created, so changing the config does not grant it retroactively; on an existing
-OIDC user, login syncs `Admin` and nothing else.
+account to hold the `api` permission**, which is independent of `admin`. A new user
+gets it only if the server's `userDefaults` grant it. `ApplyUserDefaults` runs only
+when a user is auto-created, so changing the config does not grant it retroactively;
+on an existing OIDC user, login syncs `Admin` and nothing else.
 
 **There is not always an OS keyring to put the token in.** On Linux `go-keyring` is
 the Secret Service over D-Bus, and WSL, containers, and headless servers have no
@@ -152,22 +154,18 @@ it happens. `Load` prefers the keyring whenever it holds a token. Nothing copies
 file token across, so a host that gains a provider later moves onto it at the next
 `auth login`, whose `Save` lands in the keyring. The file copy stays behind until
 `Delete`, which clears both — otherwise a file token outlives the logout that was
-meant to remove it. The
-keyringless path is reproducible without WSL:
+meant to remove it. The keyringless path is reproducible without WSL:
 
 ```bash
 GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles list /
 ```
 
-## Where it runs
+## The request-body cap the design turns on
 
-On any personal machine, plus one git-only node that cannot be reached from here, so nothing can
-be installed or tested on it from this desk.
-
-The server is reachable at `files.ichrisbirch.com` through the
-Cloudflare tunnel, which is the constraint the whole design turns on: **the free tier
-caps a request body at 100 MB**, and Quantum's WebDAV has no chunking
-([#2404](https://github.com/gtsteffaniak/filebrowser/issues/2404)). Keep
+A proxy in front of the server can cap request bodies, and a Cloudflare tunnel does:
+**the free tier stops at 100 MB**. Quantum's WebDAV has no chunking
+([upstream #2404](https://github.com/gtsteffaniak/filebrowser/issues/2404)), so behind
+that cap a large file gets through only as chunks over the REST API. Keep
 `config.DefaultChunkSize` well under the cap; `TestChunksStaysUnderTheTunnelCap`
 guards it.
 
@@ -188,6 +186,19 @@ with no `/vN` path is an outage: `go install …@latest` stops seeing the tag, e
 installed binary is stranded, and recovery is a reinstall on each machine. The
 analyzer matches unanchored and ORs past `.semrelrc`, so nothing switches it off.
 A commit that merely *discusses* the trailer cuts one too — say "that marker".
-Deliberate majors are `chore(release-major)`. Reset procedure and the measurement:
-`standards/release.md` § "Never write the breaking-change trailer in a Go repo's
-commit message".
+
+Deliberate majors are `chore(release-major)`, which `.semrelrc` maps to a major. The
+release that carries one also adds the `/vN` suffix to the module path, so
+`go install <module>/vN@latest` resolves the new tag.
+
+Recovering from an accidental major is not a history rewrite. The offending commit
+re-cuts the major on every push until a tag above it takes it out of range. In this
+order:
+
+1. Delete the vN GitHub releases and their tags, remote and local.
+2. Tag a baseline on `main` above the offending commit, and push it. Find the commit
+   by searching `git log <highest-v1-tag>..origin/main --format='%H %s%n%b'` for the
+   trailer, singular or plural, anywhere in a line. An anchored search under-reports.
+3. Confirm `go list -m github.com/datapointchris/ifiles@latest` answers the v1 tag.
+4. Reinstall on every machine. Self-update refuses a lower version, so it cannot
+   recover a stranded binary.
