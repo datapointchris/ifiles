@@ -11,8 +11,8 @@ import (
 )
 
 // DefaultChunkSize sits well under the 100 MB request-body cap on Cloudflare's
-// free tier, which every upload to files.ichrisbirch.com passes through. It is
-// not a throughput tuning knob: exceeding the cap fails the request outright
+// free tier, so an upload clears that proxy and any looser one. It is not a
+// throughput tuning knob: exceeding the cap fails the request outright
 // with a 413 that no retry can clear.
 const DefaultChunkSize = 32 << 20
 
@@ -31,9 +31,9 @@ type Config struct {
 // DefaultPath reports where ifiles reads its config, honoring XDG_CONFIG_HOME.
 //
 // The variable is read directly rather than through os.UserConfigDir, which on
-// macOS answers ~/Library/Application Support and ignores XDG entirely. This tool
-// runs on both macOS and Arch against a config directory that is shared between
-// them, so the path has to be the same on both.
+// macOS answers ~/Library/Application Support and ignores XDG entirely. A config
+// directory shared between a macOS and a Linux machine needs the same path on
+// both.
 func DefaultPath() string {
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
 		return filepath.Join(dir, "ifiles", "config.toml")
@@ -47,8 +47,9 @@ func DefaultPath() string {
 
 // Load reads the config file if present and applies environment overrides. An
 // empty override uses DefaultPath. A missing file is not an error: `ifiles auth
-// login` writes one, and every field has an environment equivalent so a scripted
-// caller needs no file at all.
+// login` writes one. url, source and chunk_size each have an environment
+// equivalent, and remote_dir falls back to the source root, so a scripted caller
+// needs no file at all.
 func Load(override string) (*Config, error) {
 	path := override
 	if path == "" {

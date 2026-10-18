@@ -144,7 +144,7 @@ func IsMissingPermission(err error) bool {
 
 // newRequest builds an authenticated request. The token travels only in the
 // Authorization header: the server also accepts ?auth=<token>, but a query
-// string is recorded in Traefik's access log.
+// string is recorded in a reverse proxy's access log.
 func (c *Client) newRequest(ctx context.Context, method, path string, query url.Values, body io.Reader) (*http.Request, error) {
 	full := c.baseURL + apiPrefix + path
 	if len(query) > 0 {

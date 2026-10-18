@@ -3,8 +3,8 @@
 // Completion is not a long-running process that can hold state: each Tab runs the
 // whole binary again as `ifiles __complete get /photos/` and reads candidates from
 // its stdout. Nothing survives between those runs, so without a cache every Tab is
-// a fresh HTTPS round-trip to the server — and this one is behind a tunnel, where
-// that is a few hundred milliseconds of a shell that appears to have hung.
+// a fresh HTTPS round-trip to the server. Behind a tunnel that is a few hundred
+// milliseconds of a shell that appears to have hung.
 //
 // The TTL is deliberately seconds, not minutes. A cached listing is only ever used
 // to offer names, so a stale one costs a suggestion that turns into a 404 on the

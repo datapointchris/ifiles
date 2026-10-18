@@ -129,7 +129,7 @@ func TestStatSendsPathSourceAndBearerToken(t *testing.T) {
 		t.Errorf("path = %q, want /photos", got)
 	}
 	// The server also accepts ?auth=<token>, which would put the secret in
-	// Traefik's access log. The header is the only supported carrier here.
+	// a reverse proxy's access log. The header is the only supported carrier here.
 	if backend.lastAuth != "Bearer test-token" {
 		t.Errorf("Authorization = %q, want a bearer token", backend.lastAuth)
 	}

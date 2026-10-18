@@ -62,7 +62,7 @@ var ErrSourceTooShort = errors.New("source ended before the declared size")
 //
 // Every upload is chunked, including small ones: a single chunk takes the same
 // server code path, and the alternative — one unchunked request — cannot exceed
-// the 100 MB body cap that Cloudflare's free tier imposes on this route. Chunking
+// a proxy's body cap, such as the 100 MB Cloudflare's free tier imposes. Chunking
 // unconditionally means there is one path to get right rather than two.
 //
 // On cancellation the server is told to pause *before* the in-flight request is
