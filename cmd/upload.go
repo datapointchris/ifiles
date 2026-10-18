@@ -28,10 +28,11 @@ var uploadCmd = &cobra.Command{
 	Short:      "Upload a file or directory",
 	Long: `Uploads a local path, recursively for a directory.
 
-Every upload is chunked, not only large ones. The tunnel in front of this server
-caps a request body at 100 MB, so an unchunked upload of a large file is rejected
-outright and no retry clears it — and WebDAV, which rclone would use, has no
-chunking at all. This command is the only way a large file gets through.
+Every upload is chunked, not only large ones. A proxy in front of the server can
+cap a request body, as Cloudflare's free tier does at 100 MB. An unchunked upload
+past the cap is rejected outright, and no retry clears it. WebDAV, which rclone
+would use, has no chunking at all. From a terminal, this command is how a large
+file gets through.
 
 Interrupting is safe. On Ctrl-C the server is told to keep what it has before the
 transfer is aborted, the offset is recorded locally, and re-running the same

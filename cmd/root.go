@@ -32,7 +32,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "ifiles",
-	Short: "Move files in and out of files.ichrisbirch.com from the terminal",
+	Short: "Move files in and out of a FileBrowser Quantum server from the terminal",
 	Long: `ifiles is a client for a FileBrowser Quantum server.
 
 Commands follow the shape: ifiles VERB PATH, and the verb says what it does in
@@ -49,7 +49,7 @@ self-documenting: run any partial command with no arguments or --help to see
 what comes next.`,
 	Example: `  ifiles list /photos                 what is in a remote directory
   ifiles download /photos/raw.cr2     fetch one file into the current directory
-  ifiles upload video.mkv /media      send one, chunked so the tunnel cannot fail it
+  ifiles upload video.mkv /media      send one, chunked under a proxy's body cap
   ifiles read /notes/todo.md          print a file's contents, for piping
   ifiles search invoice               find a file without opening the browser`,
 	SilenceErrors: true,

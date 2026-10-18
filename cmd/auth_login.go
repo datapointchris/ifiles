@@ -24,7 +24,7 @@ The token is read from a hidden prompt, or from stdin when given "-", so it neve
 appears in shell history or in ps output. Login then calls the server to verify
 it, and records the source name it finds, which every later command needs and
 nobody should have to type.`,
-	Example: `  ifiles auth login https://files.ichrisbirch.com
+	Example: `  ifiles auth login https://files.example.com
   ifiles auth login                       re-authenticate the configured server
   pass show ifiles | ifiles auth login -  read the token from stdin`,
 	// Two positionals, because the server URL and the "-" that redirects the token

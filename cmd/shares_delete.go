@@ -20,7 +20,7 @@ There is no confirmation. A revoked link is recreated with one command, so the
 cost of getting this wrong is a new URL rather than lost data, which is the
 opposite of "ifiles delete".`,
 	Example: `  ifiles shares delete T7bQ3xkLm2
-  ifiles shares delete https://files.ichrisbirch.com/public/share/T7bQ3xkLm2`,
+  ifiles shares delete https://files.example.com/public/share/T7bQ3xkLm2`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, _, err := newClient()

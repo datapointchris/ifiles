@@ -11,11 +11,10 @@ var authCmd = goclikit.AsNamespace(&cobra.Command{
 	Short:   "Store and check the API token ifiles authenticates with",
 	Long: `Authentication commands.
 
-The server is OIDC-only, so there is no password to send and no headless login
-flow. Access is a long-lived API token instead, and creating the first one
-requires a browser session — so the token is minted in the web UI under
-Settings, then pasted in here once. It is stored in the OS keyring, keyed by
-server URL, and never written to the config file.
+Access is a long-lived API token, which every Quantum server accepts. It works
+where OIDC leaves no password to send and no headless login flow. The token is
+minted in the web UI under Settings, then pasted in here once. It is stored in
+the OS keyring, keyed by server URL, and never written to the config file.
 
 Hosts with no keyring — WSL, containers, headless servers — get a 0600 file
 under the state directory instead, because the alternative is a tool that
