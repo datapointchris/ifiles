@@ -44,6 +44,12 @@ One rule: the remote path comes first for a download and second for an upload.
 "ifiles download REMOTE [LOCAL]" pulls, "ifiles upload LOCAL [REMOTE]" pushes,
 so the argument nearest the verb is always the thing being read.
 
+Start with "ifiles auth login https://files.example.com", once per server, and
+paste a token minted in the web UI. Then find a path with list or search, and act
+on it with download, read or upload. Use search when you know a file's name but
+not where it lives, and list when you know the directory. Use read to pipe a
+file into another command, and download to keep it on disk.
+
 Remote paths are absolute from the source root, and the source, server, and
 chunk size are inferred from config rather than typed. Every level is
 self-documenting: run any partial command with no arguments or --help to see
