@@ -30,8 +30,8 @@ func runLine(t *testing.T, args ...string) error {
 }
 
 // Cobra parses flags and answers --help before it validates a group's
-// arguments, so without the namespace marking a mistyped subcommand was
-// reported as the flag after it, or answered with the group's help and exit 0.
+// arguments. Without goclikit.AsNamespace on the group, `shares bogus --json`
+// reports the flag and `shares bogus --help` prints the group's help at exit 0.
 func TestAnUnknownWordInAGroupIsRefusedWhateverFollowsIt(t *testing.T) {
 	for _, args := range [][]string{
 		{"shares", "bogus"},

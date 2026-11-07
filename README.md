@@ -125,7 +125,7 @@ ifiles read /logs/app.log | rg ERROR       # the file alone on stdout
 well under the cap, and `ifiles upload --help` prints it.
 
 **Interrupting is safe.** On Ctrl-C the server is told to keep its partial file *before* the
-transfer is aborted. That ordering is the whole mechanism. The server consults its pause register
+transfer is aborted, and the order matters: the server consults its pause register
 only when a chunk request fails, and with no pause registered it deletes the partial file. The
 offset is recorded at `$XDG_STATE_HOME/ifiles/transfers.json`. It has to be kept locally, since no
 endpoint reports how much of a partial upload arrived. Re-running the same command resumes.
@@ -232,8 +232,8 @@ different file.
 
 ## What this deliberately does not do
 
-- **No `sync` or `mirror`.** Two-way sync is a job for a dedicated sync tool, which does it
-  correctly.
+- **No `sync` or `mirror`.** Two-way sync needs conflict detection and deletion tracking, which a
+  dedicated sync tool already does.
 - **No FUSE mount.** WebDAV covers it with no code here. The server takes HTTP basic auth, ignores
   the user name, and treats the password as the API token:
 

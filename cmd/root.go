@@ -90,8 +90,8 @@ func run() int {
 	return 0
 }
 
-// execute is run without the process around it, so a test drives the shipped
-// command line with the version check suppressed.
+// execute runs the command line without run's signal handling or exit code, so
+// a test can drive it with the version check suppressed.
 func execute(ctx context.Context, autoConfig autoupdate.Config) error {
 	return goclikit.Execute(ctx, rootCmd, autoConfig, goclikit.WithNotFound(notFound))
 }
