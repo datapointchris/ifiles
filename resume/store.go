@@ -31,7 +31,9 @@ import (
 type Kind string
 
 const (
-	Upload   Kind = "upload"
+	// Upload is a local file being sent to the server.
+	Upload Kind = "upload"
+	// Download is a remote file being fetched into a local one.
 	Download Kind = "download"
 )
 
@@ -77,11 +79,14 @@ func DefaultPath() string {
 	return filepath.Join(home, ".local", "state", "ifiles", "transfers.json")
 }
 
+// NewStore returns a store over DefaultPath. The file is read on each call, so a
+// missing one is the empty state rather than an error.
 func NewStore() *Store { return &Store{path: DefaultPath()} }
 
 // NewStoreAt builds a store over a specific file, for tests.
 func NewStoreAt(path string) *Store { return &Store{path: path} }
 
+// Path reports the file the store reads and writes.
 func (s *Store) Path() string { return s.path }
 
 // Lookup returns the offset to resume from, and whether resuming is safe.

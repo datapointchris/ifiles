@@ -58,6 +58,7 @@ func DefaultPath() string {
 	return filepath.Join(home, ".cache", "ifiles", "listings.json")
 }
 
+// NewCache returns a cache over DefaultPath whose entries live for DefaultTTL.
 func NewCache() *Cache { return &Cache{path: DefaultPath(), ttl: DefaultTTL} }
 
 // NewCacheAt builds a cache over a specific file and TTL, for tests.
@@ -65,6 +66,7 @@ func NewCacheAt(path string, ttl time.Duration) *Cache {
 	return &Cache{path: path, ttl: ttl}
 }
 
+// Path reports the file the cache reads and writes.
 func (c *Cache) Path() string { return c.path }
 
 // Key identifies a directory on a particular server and source. All three matter:

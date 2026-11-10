@@ -26,9 +26,15 @@ var ErrNotLoggedIn = errors.New("not logged in: run `ifiles auth login`")
 type Backend string
 
 const (
-	BackendEnv     Backend = "IFILES_TOKEN"
+	// BackendEnv is a token read from the IFILES_TOKEN environment variable,
+	// which overrides both stores and is never written.
+	BackendEnv Backend = "IFILES_TOKEN"
+	// BackendKeyring is the OS credential store: Keychain on macOS, the Secret
+	// Service on Linux, Credential Manager on Windows.
 	BackendKeyring Backend = "OS keyring"
-	BackendFile    Backend = "file"
+	// BackendFile is the 0600 fallback file at DefaultTokenPath, used where no
+	// keyring answers.
+	BackendFile Backend = "file"
 )
 
 // keyringBackend is the seam that lets tests swap the OS keychain for an
@@ -56,6 +62,8 @@ type TokenStore struct {
 	file    *fileStore
 }
 
+// NewTokenStore returns a store over the OS keyring, falling back to the file at
+// DefaultTokenPath.
 func NewTokenStore() *TokenStore {
 	return &TokenStore{keyring: osKeyring{}, file: newFileStore(DefaultTokenPath())}
 }

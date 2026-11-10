@@ -17,6 +17,7 @@ type SearchResult struct {
 	Source   string `json:"source"`
 }
 
+// IsDir reports whether the match is a directory.
 func (r SearchResult) IsDir() bool { return r.Type == DirectoryType }
 
 // SearchRequest describes a search.

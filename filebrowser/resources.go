@@ -25,6 +25,7 @@ type Item struct {
 	IsShared bool      `json:"isShared,omitempty"`
 }
 
+// IsDir reports whether the item is a directory.
 func (i Item) IsDir() bool { return i.Type == DirectoryType }
 
 // Listing is the response to a GET on a directory. Quantum returns children
@@ -84,6 +85,7 @@ type NotADirectoryError struct {
 	Path string
 }
 
+// Error names the path that is not a directory.
 func (e *NotADirectoryError) Error() string { return e.Path + " is not a directory" }
 
 // Mkdir creates a directory. The server creates intermediate directories itself,
@@ -173,6 +175,8 @@ type OperationError struct {
 	Message string
 }
 
+// Error names the action and path, with the server's per-item message when it
+// gave one.
 func (e *OperationError) Error() string {
 	if e.Message == "" {
 		return e.Action + " failed for " + e.Path

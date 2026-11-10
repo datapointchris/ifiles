@@ -48,6 +48,7 @@ type Download struct {
 	Resumed bool
 }
 
+// Close closes the response body. The caller owns it once Download returns.
 func (d *Download) Close() error { return d.Body.Close() }
 
 // Download opens a stream for one or more remote paths.

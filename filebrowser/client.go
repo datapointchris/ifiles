@@ -22,6 +22,9 @@ import (
 // apiPrefix is where the server mounts its authenticated API mux.
 const apiPrefix = "/api"
 
+// Client talks to one FileBrowser Quantum server as one API token, addressing one
+// source. Every request it makes is built by newRequest and sends the token in
+// the Authorization header.
 type Client struct {
 	baseURL string
 	token   string
@@ -29,15 +32,22 @@ type Client struct {
 	http    *http.Client
 }
 
+// Options configures New.
 type Options struct {
+	// BaseURL is the server's root, without the /api prefix. A trailing slash
+	// is trimmed.
 	BaseURL string
-	Token   string
+	// Token is a FileBrowser API token, minted in the web UI.
+	Token string
 	// Source names which of Quantum's configured sources to address. Every
 	// resource route requires it, so it is held on the client rather than
 	// threaded through each call.
 	Source string
 }
 
+// New returns a Client for opts. It refuses an empty BaseURL and one without an
+// http or https scheme, and makes no request: a bad token surfaces on the first
+// call.
 func New(opts Options) (*Client, error) {
 	base := strings.TrimRight(opts.BaseURL, "/")
 	if base == "" {
@@ -91,6 +101,8 @@ type APIError struct {
 	Resource string
 }
 
+// Error names the method, route and status, with the server's message when it
+// sent one and the status text when it did not.
 func (e *APIError) Error() string {
 	if e.Message != "" {
 		return fmt.Sprintf("%s %s: %d %s", e.Method, e.Path, e.Status, e.Message)

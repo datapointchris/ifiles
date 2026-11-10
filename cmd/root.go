@@ -63,6 +63,8 @@ what comes next.`,
 	SilenceUsage:  true,
 }
 
+// Execute runs the command line in os.Args and exits the process: 0 on success,
+// 2 for a command line that was wrong, 1 for a run that failed.
 func Execute() {
 	// os.Exit lives here alone so run() can use defer, which os.Exit skips.
 	os.Exit(run())
