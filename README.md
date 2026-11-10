@@ -20,7 +20,7 @@ ifiles does the same from a terminal.
 ```bash
 go install github.com/datapointchris/ifiles@latest   # or a Linux or macOS archive from the GitHub releases
 ifiles update                                         # later: the latest release, verified against its checksums
-task install                                          # from a checkout: a dev build into ~/.local/bin
+task install                                          # from a checkout: a dev build into ~/go/bin, where the release lives
 ```
 
 ## Starting from scratch
