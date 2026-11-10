@@ -43,11 +43,11 @@ nobody should have to type.`,
 			return err
 		}
 
-		fromStdin := false
+		source := promptOrPipe
 		urls := 0
 		for _, arg := range args {
 			if arg == "-" {
-				fromStdin = true
+				source = stdinRequested
 				continue
 			}
 			urls++
@@ -66,7 +66,7 @@ nobody should have to type.`,
 			return err
 		}
 
-		token, err := readToken(cmd, fromStdin)
+		token, err := readToken(cmd, source)
 		if err != nil {
 			return err
 		}
@@ -144,13 +144,13 @@ func chooseSource(cmd *cobra.Command, cfg *config.Config, sources []filebrowser.
 }
 
 // readToken takes the token from stdin or a hidden prompt.
-func readToken(cmd *cobra.Command, fromStdin bool) (string, error) {
+func readToken(cmd *cobra.Command, source secretSource) (string, error) {
 	return readSecret(cmd, secretPrompt{
 		Lead:    "Paste the API token from the web UI (Settings, API tokens).",
 		Label:   "Token: ",
 		Missing: "no token given",
 		NoInput: "--no-input given; pass the token on stdin with `ifiles auth login -`",
-	}, fromStdin)
+	}, source)
 }
 
 func init() {

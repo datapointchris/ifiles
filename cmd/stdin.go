@@ -36,14 +36,26 @@ type secretPrompt struct {
 	NoInput string
 }
 
+// secretSource says where the caller asked readSecret to take the secret from.
+type secretSource bool
+
+const (
+	// promptOrPipe prompts on a terminal and reads stdin when there is none.
+	promptOrPipe secretSource = false
+	// stdinRequested reads stdin even on a terminal, and is the one source
+	// --no-input allows.
+	stdinRequested secretSource = true
+)
+
 // readSecret takes a secret from a hidden prompt, or from stdin when there is no
 // terminal to prompt on.
 //
 // A prompt is only ever offered on a TTY. Prompting a non-interactive caller
 // blocks on a stdin that never closes, leaving it with no output and no exit
 // code — the one failure mode a caller cannot recover from.
-func readSecret(cmd *cobra.Command, prompt secretPrompt, fromStdin bool) (string, error) {
+func readSecret(cmd *cobra.Command, prompt secretPrompt, source secretSource) (string, error) {
 	stdin := int(os.Stdin.Fd())
+	fromStdin := source == stdinRequested
 	if fromStdin || noInput || !term.IsTerminal(stdin) {
 		if noInput && !fromStdin {
 			return "", fmt.Errorf("%s", prompt.NoInput)

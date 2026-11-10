@@ -29,7 +29,7 @@ directory means "into it".`,
   ifiles move /docs/draft.md /docs/final.md   rename in place`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return moveOrCopy(cmd, "move", args[0], args[1], moveOverride)
+		return moveOrCopy(cmd, moveAction, args[0], args[1], filebrowser.Overwrite(moveOverride))
 	},
 }
 
@@ -44,11 +44,19 @@ Like move, the data never travels through this client.`,
   ifiles copy /config/prod.yml /config/staging.yml`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return moveOrCopy(cmd, "copy", args[0], args[1], copyOverride)
+		return moveOrCopy(cmd, copyAction, args[0], args[1], filebrowser.Overwrite(copyOverride))
 	},
 }
 
-func moveOrCopy(cmd *cobra.Command, action, src, dst string, override bool) error {
+// remoteAction is which server-side operation moveOrCopy runs.
+type remoteAction int
+
+const (
+	moveAction remoteAction = iota
+	copyAction
+)
+
+func moveOrCopy(cmd *cobra.Command, action remoteAction, src, dst string, overwrite filebrowser.Overwrite) error {
 	client, _, err := newClient()
 	if err != nil {
 		return err
@@ -67,10 +75,10 @@ func moveOrCopy(cmd *cobra.Command, action, src, dst string, override bool) erro
 		to = path.Join(to, path.Base(from))
 	}
 
-	if action == "move" {
-		err = client.Move(ctx, from, to, override)
+	if action == moveAction {
+		err = client.Move(ctx, from, to, overwrite)
 	} else {
-		err = client.Copy(ctx, from, to, override)
+		err = client.Copy(ctx, from, to, overwrite)
 	}
 	if err != nil {
 		if filebrowser.IsConflict(err) {
@@ -83,8 +91,8 @@ func moveOrCopy(cmd *cobra.Command, action, src, dst string, override bool) erro
 	return nil
 }
 
-func pastTense(action string) string {
-	if action == "move" {
+func pastTense(action remoteAction) string {
+	if action == moveAction {
 		return "Moved"
 	}
 	return "Copied"

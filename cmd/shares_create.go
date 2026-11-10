@@ -63,7 +63,7 @@ when the recipient downloads it.`,
 				Label:   "Password for the link: ",
 				Missing: "no password given",
 				NoInput: "--no-input given; pass the password on stdin",
-			}, false)
+			}, promptOrPipe)
 			if err != nil {
 				return err
 			}

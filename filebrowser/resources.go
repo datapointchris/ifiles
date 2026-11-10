@@ -121,17 +121,28 @@ type moveCopyResponse struct {
 	Failed    []moveCopyItem `json:"failed"`
 }
 
+// Overwrite says whether Move or Copy replaces a destination that already exists.
+type Overwrite bool
+
+const (
+	// KeepExisting leaves an existing destination alone, and the server answers
+	// with a conflict.
+	KeepExisting Overwrite = false
+	// ReplaceExisting replaces an existing destination.
+	ReplaceExisting Overwrite = true
+)
+
 // Move relocates a path server-side, with no round trip through the client.
-func (c *Client) Move(ctx context.Context, from, to string, overwrite bool) error {
+func (c *Client) Move(ctx context.Context, from, to string, overwrite Overwrite) error {
 	return c.moveCopy(ctx, "move", from, to, overwrite)
 }
 
 // Copy duplicates a path server-side.
-func (c *Client) Copy(ctx context.Context, from, to string, overwrite bool) error {
+func (c *Client) Copy(ctx context.Context, from, to string, overwrite Overwrite) error {
 	return c.moveCopy(ctx, "copy", from, to, overwrite)
 }
 
-func (c *Client) moveCopy(ctx context.Context, action, from, to string, overwrite bool) error {
+func (c *Client) moveCopy(ctx context.Context, action, from, to string, overwrite Overwrite) error {
 	body := moveCopyRequest{
 		Items: []moveCopyItem{{
 			FromSource: c.source,
@@ -140,7 +151,7 @@ func (c *Client) moveCopy(ctx context.Context, action, from, to string, overwrit
 			ToPath:     to,
 		}},
 		Action:    action,
-		Overwrite: overwrite,
+		Overwrite: bool(overwrite),
 	}
 
 	var result moveCopyResponse

@@ -237,7 +237,7 @@ func TestMoveReportsAFailureHiddenInsideA200(t *testing.T) {
 	}`}
 	client := newRecordingClient(t, backend)
 
-	err := client.Move(context.Background(), "/a.txt", "/b.txt", false)
+	err := client.Move(context.Background(), "/a.txt", "/b.txt", KeepExisting)
 	if err == nil {
 		t.Fatal("Move() succeeded despite a failed item in the response")
 	}
