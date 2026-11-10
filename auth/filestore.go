@@ -27,7 +27,7 @@ func DefaultTokenPath() string {
 }
 
 // fileStore keeps tokens in a 0600 JSON file, for hosts with no OS keyring at
-// all: the work WSL box, containers, any headless server. Keyed by the same
+// all: WSL, containers, any headless server. Keyed by the same
 // normalized server URL as the keyring, so the two backends address one token.
 type fileStore struct {
 	path string
