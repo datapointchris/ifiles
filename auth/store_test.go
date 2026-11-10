@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -185,13 +186,22 @@ func TestDeleteRemovesTheToken(t *testing.T) {
 	}
 }
 
-// TestKeyringlessHostRoundTrip is the work-box case: WSL with no Secret Service,
-// where every command used to fail on a dbus-launch that is not installed.
+// TestKeyringlessHostRoundTrip drives the real go-keyring on a Linux host with no
+// Secret Service, as on WSL, in a container or on a headless server. With no
+// session bus address, no bus socket under XDG_RUNTIME_DIR and no dbus-launch
+// on PATH, the library fails before any request with the same error those hosts
+// give, and the token has to land in the fallback file.
 func TestKeyringlessHostRoundTrip(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("the keyringless failure is the Linux Secret Service's; elsewhere this would reach the real keychain")
+	}
 	t.Setenv("IFILES_TOKEN", "")
+	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "")
+	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 
-	store, fake := newTestStore(t)
-	fake.unavailable = true
+	store := NewTokenStore()
 	const url = "https://files.example.com"
 
 	backend, err := store.Save(url, "secret-token")
