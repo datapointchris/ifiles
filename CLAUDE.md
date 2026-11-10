@@ -35,6 +35,34 @@ with no sources route, and `DELETE /resources/bulk` replaced
 `POST /resources/bulk/delete` in `v1.4.0-stable`. Which of those answer 401 pins the
 deployed version to a range without shell access to the container.
 
+## Every external effect has one door
+
+Anything that leaves the process goes through one named function. That function is where
+the token, a header or a test stub attaches, once.
+
+- **HTTP.** `filebrowser.Client.newRequest` builds every request, and it is the only place
+  the token is set. `Client.do` issues every JSON call: it encodes the body, reads the
+  response, and turns a 4xx or 5xx into an `APIError`. Three methods call `c.http.Do`
+  themselves, each on a request `newRequest` built:
+  - `putChunk` sends a raw byte body with the chunk headers, and runs on a detached
+    context so a cancellation can pause before it aborts.
+  - `Download` hands the open response body to the caller to stream, which `do` would
+    read whole.
+  - `Health` reads only the status.
+
+  No other code calls `c.http.Do`, and nothing outside `filebrowser` makes a request.
+- **The OS keyring** is reached only through `auth.osKeyring`, behind the
+  `keyringBackend` interface `auth.TokenStore` holds.
+- **Files ifiles owns** are each written by one type: the config by `config.Config.Save`,
+  the fallback token file by `auth.fileStore.write`, the resume offsets by
+  `resume.Store.write`, and the completion listings by `completion.Cache.write`. The last
+  three write a temp file and rename it into place, so a crash never leaves half a file.
+- **The user's files** are read by `upload` and written by `download`, which streams into
+  `<target>.ifilespart` and renames it when the transfer completes.
+
+ifiles' own code runs no subprocess. The keyring library does: `/usr/bin/security` on
+macOS, and `dbus-launch` on Linux when no session bus is running.
+
 ## Protocol details that will not be guessed correctly
 
 - **Upload is the raw request body**, not multipart. The handler does
@@ -159,6 +187,26 @@ meant to remove it. The keyringless path is reproducible without WSL:
 ```bash
 GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles list /
 ```
+
+## `go-keyring` is accepted, and it reaches one entry
+
+`github.com/zalando/go-keyring` is the one dependency that reaches past this repo's own
+files. It reads and writes the OS credential store: Keychain on macOS, the Secret Service
+over D-Bus on Linux, Credential Manager on Windows.
+
+- **What it reaches.** ifiles asks it for one service, `ifiles`, and one account per
+  server URL. Each entry holds one FileBrowser API token. ifiles never asks it for
+  another service's entries.
+- **Why it is accepted.** It is the maintained Go route to all three stores behind one
+  API, with no cgo, which is why it runs `/usr/bin/security` on macOS. The alternative is a 0600 plaintext file, which ifiles already falls
+  back to where no store answers. Using the store first keeps the token encrypted at
+  rest wherever a store exists.
+- **Its blast radius.** A defect in it can lose or expose that one token. A lost token
+  costs an `auth login` with a token re-minted in the web UI. An exposed one carries
+  the account's full rights until it is revoked there, which is the same exposure the
+  fallback file has.
+
+Calls reach it only through `auth.osKeyring`, so replacing it is one file.
 
 ## The request-body cap the design turns on
 
