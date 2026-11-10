@@ -70,7 +70,12 @@ func New(opts Options) (*Client, error) {
 		// large file — which is the case this tool exists for. Deadlines come from
 		// the per-call context instead, so `--timeout` bounds a transfer and
 		// nothing bounds it by default.
-		http: &http.Client{},
+		//
+		// The transport is a clone so each Client owns its connection pool. On the
+		// shared http.DefaultTransport, any other code in the process calling
+		// CloseIdleConnections (httptest.Server.Close does) can break a chunk
+		// upload that is mid-flight.
+		http: &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()},
 	}, nil
 }
 
