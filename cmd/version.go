@@ -62,7 +62,7 @@ func init() {
 	rootCmd.Version = buildVersion()
 	rootCmd.SetVersionTemplate("ifiles {{.Version}}\n")
 
-	// Free -v for a future --verbose flag, matching forge, bbkt, nomad, and meso.
+	// Free -v for a future --verbose flag, the meaning most CLIs give it.
 	rootCmd.InitDefaultVersionFlag()
 	if f := rootCmd.Flags().Lookup("version"); f != nil {
 		f.Shorthand = ""

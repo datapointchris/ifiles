@@ -12,9 +12,8 @@ import (
 )
 
 // keyringService namespaces ifiles' entries in the OS keychain. Tokens are keyed
-// within it by server URL, so a second FileBrowser instance does not overwrite
-// the first — the keychain is Syncthing-adjacent across machines and a single
-// shared key would make two hosts fight over one entry.
+// within it by server URL, so logging in to a second FileBrowser server does not
+// overwrite the first server's token.
 const keyringService = "ifiles"
 
 // ErrNotLoggedIn is returned when no token is stored for a server.
