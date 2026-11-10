@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -115,18 +116,12 @@ func TestLoadEnvironmentOverridesFile(t *testing.T) {
 	}
 }
 
-func TestRequireURLNamesEveryWayToSupplyOne(t *testing.T) {
+func TestRequireURLWithNoURLReportsNoServerConfigured(t *testing.T) {
 	t.Parallel()
 
 	cfg := &Config{path: "/tmp/ifiles/config.toml"}
-	_, err := cfg.RequireURL()
-	if err == nil {
-		t.Fatal("RequireURL() with no URL succeeded, want an error")
-	}
-	for _, want := range []string{"auth login", "IFILES_URL", cfg.path} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q does not mention %q", err, want)
-		}
+	if _, err := cfg.RequireURL(); !errors.Is(err, ErrNoServerConfigured) {
+		t.Errorf("RequireURL() with no URL returned %v, want ErrNoServerConfigured", err)
 	}
 }
 

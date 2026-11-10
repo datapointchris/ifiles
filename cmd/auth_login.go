@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,12 @@ import (
 	"github.com/datapointchris/ifiles/config"
 	"github.com/datapointchris/ifiles/filebrowser"
 )
+
+// errLoginNeedsURL is a first login run with no URL argument and none
+// configured. config.ErrNoServerConfigured's remedy is "run `ifiles auth login
+// <url>`", which reads as a loop to someone already running it, so this names
+// the missing argument instead.
+var errLoginNeedsURL = errors.New("give the server URL: `ifiles auth login https://files.example.com`")
 
 var authLoginCmd = &cobra.Command{
 	Use:   "login [server-url]",
@@ -50,11 +57,8 @@ nobody should have to type.`,
 			return fmt.Errorf("give at most one server URL")
 		}
 
-		// RequireURL's remedy is "run `ifiles auth login <url>`", which reads as a
-		// loop to someone already running it. On the first login the missing piece
-		// is the argument, so say that instead.
 		if urls == 0 && cfg.URL == "" {
-			return fmt.Errorf("give the server URL: `ifiles auth login https://files.example.com`")
+			return errLoginNeedsURL
 		}
 
 		url, err := cfg.RequireURL()

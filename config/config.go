@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -122,13 +123,18 @@ func (c *Config) Chunks() (int64, error) {
 	return size, nil
 }
 
-// RequireURL returns the configured base URL, or an error naming every way to
-// supply one.
+// ErrNoServerConfigured is returned when neither the config file nor the
+// environment names a server URL. Callers test for it with errors.Is, so the
+// remedy wrapped around it can be reworded freely.
+var ErrNoServerConfigured = errors.New("no server configured")
+
+// RequireURL returns the configured base URL, or ErrNoServerConfigured wrapped
+// in a message naming every way to supply one.
 func (c *Config) RequireURL() (string, error) {
 	if c.URL == "" {
 		// Names the URL argument, because the bare `ifiles auth login` is what
 		// produces this error and pointing at it again strands a first-time user.
-		return "", fmt.Errorf("no server configured: run `ifiles auth login <url>`, set url in %s, or set IFILES_URL", c.path)
+		return "", fmt.Errorf("%w: run `ifiles auth login <url>`, set url in %s, or set IFILES_URL", ErrNoServerConfigured, c.path)
 	}
 	return c.URL, nil
 }

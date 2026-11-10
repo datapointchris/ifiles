@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/datapointchris/ifiles/auth"
+	"github.com/datapointchris/ifiles/config"
 	"github.com/datapointchris/ifiles/filebrowser"
 )
 
@@ -57,7 +57,7 @@ different fixes.`,
 
 		report := statusReport{Server: cfg.URL, Source: cfg.Source, Config: cfg.Path()}
 		if cfg.URL == "" {
-			return finishStatus(cmd, report, errors.New("no server configured: run `ifiles auth login <url>`"))
+			return finishStatus(cmd, report, fmt.Errorf("%w: run `ifiles auth login <url>`", config.ErrNoServerConfigured))
 		}
 
 		token, backend, tokenErr := auth.NewTokenStore().Load(cfg.URL)
