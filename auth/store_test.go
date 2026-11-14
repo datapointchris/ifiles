@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -194,6 +195,13 @@ func TestDeleteRemovesTheToken(t *testing.T) {
 func TestKeyringlessHostRoundTrip(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("the keyringless failure is the Linux Secret Service's; elsewhere this would reach the real keychain")
+	}
+	// godbus looks for the bus at /run/user/<uid>/bus whatever XDG_RUNTIME_DIR
+	// says, so a host running a session bus cannot stage the keyringless case.
+	if u, err := user.Current(); err == nil {
+		if _, err := os.Stat("/run/user/" + u.Uid + "/bus"); err == nil {
+			t.Skip("this host runs a session bus, which godbus reaches whatever the environment says")
+		}
 	}
 	t.Setenv("IFILES_TOKEN", "")
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "")
