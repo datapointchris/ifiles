@@ -13,8 +13,8 @@ var authCmd = goclikit.AsNamespace(&cobra.Command{
 
 Access is a long-lived API token, which every Quantum server accepts. It works
 where OIDC leaves no password to send and no headless login flow. The token is
-minted in the web UI under Settings, then pasted in here once. It is stored in
-the OS keyring, keyed by server URL, and never written to the config file.
+stored in the OS keyring, keyed by server URL, and never written to the config
+file.
 
 Hosts with no keyring — WSL, containers, headless servers — get a 0600 file
 under the state directory instead, because the alternative is a tool that

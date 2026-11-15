@@ -24,11 +24,7 @@ A link is a hash the server issues, and anyone holding it can read what it point
 at, so the two settings worth thinking about are how long it lives and whether it
 needs a password. Neither has a default: a link with no --expires never expires,
 which is right for a link you will revoke by hand and wrong for one you mail to
-someone.
-
-This needs the "share" permission on the account, which is separate from "api"
-and from "admin". Without it the server refuses with a bare 403 carrying no
-message at all, so these commands say so themselves.`,
+someone.`,
 	Example: `  ifiles shares create /photos/wedding --expires 7d
   ifiles shares list
   ifiles shares delete /public/share/T7bQ3xk`,
