@@ -3,12 +3,15 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -149,5 +152,126 @@ func TestNoWriteChoosesStdoutImplicitly(t *testing.T) {
 	// A walk that found no source would pass every check above.
 	if parsed == 0 {
 		t.Fatalf("parsed no Go files under %s", moduleRoot)
+	}
+}
+
+// printedCommand is one `ifiles ...` the source or README tells a reader to run,
+// cut to its leading lowercase words: a placeholder, a flag, a path or a format
+// verb ends it, because none of those can name a subcommand.
+type printedCommand struct {
+	where string
+	words []string
+}
+
+// A command in a Go string is "ifiles" indented at the start of a line (an
+// example), inside quotes or backticks, or after "; ", ": " or "| " (a hint
+// closing an error). Bare "ifiles" mid-sentence is the tool's name in prose.
+var (
+	commandInGoString   = regexp.MustCompile("(?m)(?:^[ \\t]+|[`\"]|[;:|] )ifiles((?: [a-z][a-z0-9-]*)*)")
+	commandInCodeBlock  = regexp.MustCompile(`(?:^|\| )ifiles((?: [a-z][a-z0-9-]*)*)`)
+	commandInInlineCode = regexp.MustCompile("`ifiles((?: [a-z][a-z0-9-]*)*)")
+)
+
+func printedCommands(t *testing.T) []printedCommand {
+	t.Helper()
+	moduleRoot := ".."
+	var found []printedCommand
+	add := func(where string, pattern *regexp.Regexp, text string) {
+		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
+			if words := strings.Fields(match[1]); len(words) > 0 {
+				found = append(found, printedCommand{where: where, words: words})
+			}
+		}
+	}
+
+	fset := token.NewFileSet()
+	err := filepath.WalkDir(moduleRoot, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if name := entry.Name(); name != ".." && strings.HasPrefix(name, ".") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		file, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			if literal, ok := node.(*ast.BasicLit); ok && literal.Kind == token.STRING {
+				if value, err := strconv.Unquote(literal.Value); err == nil {
+					add(fset.Position(literal.Pos()).String(), commandInGoString, value)
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking %s: %v", moduleRoot, err)
+	}
+
+	readme, err := os.ReadFile(filepath.Join(moduleRoot, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	inFence := false
+	for number, line := range strings.Split(string(readme), "\n") {
+		where := fmt.Sprintf("README.md:%d", number+1)
+		switch {
+		case strings.HasPrefix(line, "```"):
+			inFence = !inFence
+		case inFence:
+			add(where, commandInCodeBlock, line)
+		default:
+			add(where, commandInInlineCode, line)
+		}
+	}
+	return found
+}
+
+// childNamed finds the subcommand a typed word reaches, by name or alias.
+func childNamed(parent *cobra.Command, word string) *cobra.Command {
+	for _, child := range parent.Commands() {
+		if child.Name() == word || child.HasAlias(word) {
+			return child
+		}
+	}
+	return nil
+}
+
+// A printed command names a sibling, so it breaks when a neighbor is renamed
+// rather than when its own code is touched, and no test of the command printing
+// it would notice. Each one is walked down the assembled tree: a word that
+// reaches no subcommand of a command that has subcommands fails, and the first
+// word past a leaf is that leaf's argument.
+func TestEveryPrintedCommandNamesCommandsThatExist(t *testing.T) {
+	// Execute adds these two, and the README names `ifiles completion zsh`.
+	rootCmd.InitDefaultHelpCmd()
+	rootCmd.InitDefaultCompletionCmd()
+
+	commands := printedCommands(t)
+	// A filter that matched nothing would pass every command.
+	if len(commands) == 0 {
+		t.Fatal("found no printed ifiles commands in the source or README")
+	}
+	for _, command := range commands {
+		current := rootCmd
+		for _, word := range command.words {
+			next := childNamed(current, word)
+			if next == nil {
+				if current.HasSubCommands() {
+					t.Errorf("%s: `ifiles %s` names %q, which is no subcommand of %q",
+						command.where, strings.Join(command.words, " "), word, current.CommandPath())
+				}
+				break
+			}
+			current = next
+		}
 	}
 }
