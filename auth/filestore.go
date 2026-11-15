@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/datapointchris/ifiles/atomicfile"
+	"github.com/datapointchris/ifiles/xdg"
 )
 
 // DefaultTokenPath reports the fallback token file, honoring XDG_STATE_HOME.
@@ -15,17 +16,14 @@ import (
 // The state directory rather than the config directory: config.toml is a file to
 // hand-edit and paste out of, and a secret must not sit one field away from that.
 func DefaultTokenPath() string {
-	if dir := os.Getenv("XDG_STATE_HOME"); dir != "" {
-		return filepath.Join(dir, "ifiles", "token.json")
-	}
-	home, err := os.UserHomeDir()
+	dir, err := xdg.StateDir()
 	if err != nil {
 		// No home means no private directory to put a secret in. Empty makes the
 		// backend refuse, rather than dropping a token into a shared temp
 		// directory the way the resume state can safely fall back to.
 		return ""
 	}
-	return filepath.Join(home, ".local", "state", "ifiles", "token.json")
+	return filepath.Join(dir, "token.json")
 }
 
 // fileStore keeps tokens in a 0600 JSON file, for hosts with no OS keyring at

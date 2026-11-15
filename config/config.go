@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+
+	"github.com/datapointchris/ifiles/xdg"
 )
 
 // DefaultChunkSize sits well under the 100 MB request-body cap on Cloudflare's
@@ -30,20 +32,12 @@ type Config struct {
 }
 
 // DefaultPath reports where ifiles reads its config, honoring XDG_CONFIG_HOME.
-//
-// The variable is read directly rather than through os.UserConfigDir, which on
-// macOS answers ~/Library/Application Support and ignores XDG entirely. A config
-// directory shared between a macOS and a Linux machine needs the same path on
-// both.
 func DefaultPath() string {
-	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		return filepath.Join(dir, "ifiles", "config.toml")
-	}
-	home, err := os.UserHomeDir()
+	dir, err := xdg.ConfigDir()
 	if err != nil {
 		return filepath.Join(".config", "ifiles", "config.toml")
 	}
-	return filepath.Join(home, ".config", "ifiles", "config.toml")
+	return filepath.Join(dir, "config.toml")
 }
 
 // Load reads the config file if present and applies environment overrides. An

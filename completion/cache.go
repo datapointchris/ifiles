@@ -21,6 +21,7 @@ import (
 
 	"github.com/datapointchris/ifiles/atomicfile"
 	"github.com/datapointchris/ifiles/filebrowser"
+	"github.com/datapointchris/ifiles/xdg"
 )
 
 // DefaultTTL is how long a cached listing is offered. Long enough that tabbing
@@ -43,20 +44,12 @@ type Cache struct {
 }
 
 // DefaultPath reports where cached listings live, honoring XDG_CACHE_HOME.
-//
-// The variable is read directly rather than through os.UserCacheDir, which answers
-// ~/Library/Caches on macOS and ignores XDG. Every other ifiles path is resolved
-// the same way, so a config directory shared between macOS and Arch resolves
-// identically on both.
 func DefaultPath() string {
-	if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" {
-		return filepath.Join(dir, "ifiles", "listings.json")
-	}
-	home, err := os.UserHomeDir()
+	dir, err := xdg.CacheDir()
 	if err != nil {
 		return filepath.Join(os.TempDir(), "ifiles-listings.json")
 	}
-	return filepath.Join(home, ".cache", "ifiles", "listings.json")
+	return filepath.Join(dir, "listings.json")
 }
 
 // NewCache returns a cache over DefaultPath whose entries live for DefaultTTL.

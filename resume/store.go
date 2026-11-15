@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/datapointchris/ifiles/atomicfile"
+	"github.com/datapointchris/ifiles/xdg"
 )
 
 // Kind distinguishes the two directions, so an upload record can never satisfy a
@@ -71,14 +72,11 @@ type Store struct {
 
 // DefaultPath reports where the resume state lives, honoring XDG_STATE_HOME.
 func DefaultPath() string {
-	if dir := os.Getenv("XDG_STATE_HOME"); dir != "" {
-		return filepath.Join(dir, "ifiles", "transfers.json")
-	}
-	home, err := os.UserHomeDir()
+	dir, err := xdg.StateDir()
 	if err != nil {
 		return filepath.Join(os.TempDir(), "ifiles-transfers.json")
 	}
-	return filepath.Join(home, ".local", "state", "ifiles", "transfers.json")
+	return filepath.Join(dir, "transfers.json")
 }
 
 // NewStore returns a store over DefaultPath. The file is read on each call, so a
