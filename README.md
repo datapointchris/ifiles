@@ -93,17 +93,10 @@ so it stays out of shell history and `ps`.
 The token goes in the OS keyring, keyed by server URL, and never into the config file.
 `IFILES_TOKEN` overrides both stores, for a script.
 
-**On a host with no keyring**, the token goes to `$XDG_STATE_HOME/ifiles/token.json` at `0600`
-instead. On Linux the keyring is the Secret Service over D-Bus, which WSL, containers and headless
-servers do not have. There the keyring call fails before any request is made, with
-`exec: "dbus-launch": executable file not found in $PATH`. Refusing to store a token would leave the
-tool unusable on exactly the machines whose only other route to the server is a browser. So it
-stores one and says where: `auth login` reports the fallback, and `auth status` names the backend a
-token came from.
-
-A host that gains a Secret Service later moves onto it at the next `auth login`. From then on the
-keyring copy wins over the file. `auth logout` clears both, so a file token cannot outlive the logout
-meant to remove it.
+**On a host with no keyring**, such as WSL, a container or a headless server, the token goes to
+`$XDG_STATE_HOME/ifiles/token.json` at `0600` instead. `auth login` reports the fallback, and
+`auth status` names the backend a token came from. A host that gains a keyring later moves onto it
+at the next `auth login`, and `auth logout` clears both.
 
 `auth status` decodes the token's `exp` claim locally and warns when under two weeks remain. The
 signature is not verified, because proving the server minted the token is the server's job on every
@@ -124,16 +117,11 @@ ifiles read /logs/app.log | rg ERROR       # the file alone on stdout
 100 MB request cap an unchunked large upload fails with a 413 anyway. The default chunk size sits
 well under the cap, and `ifiles upload --help` prints it.
 
-**Interrupting is safe.** On Ctrl-C the server is told to keep its partial file *before* the
-transfer is aborted, and the order matters: the server consults its pause register
-only when a chunk request fails, and with no pause registered it deletes the partial file. The
-offset is recorded at `$XDG_STATE_HOME/ifiles/transfers.json`. It has to be kept locally, since no
-endpoint reports how much of a partial upload arrived. Re-running the same command resumes.
+**Interrupting is safe.** On Ctrl-C the server is told to keep its partial file, and the offset is
+recorded at `$XDG_STATE_HOME/ifiles/transfers.json`. Re-running the same command resumes.
 
-A local file that changed between attempts invalidates the resume. The server seeks to whatever
-offset it is given without checking the partial file is really that long. Resuming a modified file
-would write new bytes into the middle of an old upload. The result would be corrupt, and it would
-pass every check the server makes.
+A local file that changed between attempts is not resumed. The upload starts again from the first
+byte, because appending to the old partial file would produce a corrupt result the server accepts.
 
 **Downloads resume too.** Bytes land in a `.ifilespart` file beside the destination, renamed into
 place at the end. A re-run asks for the rest with an HTTP range request. A directory download does
@@ -267,9 +255,9 @@ these places:
 | Upload is multipart form data | Upload is the raw request body, with `X-File-Chunk-Offset` and `X-File-Total-Size` headers |
 | — | `GET /api/resources/download` takes repeated `?file=`, not the `?path=` every other route uses |
 | — | `GET /api/settings/sources` exists in the router but carries no swagger annotation, so it is absent from the spec |
-| — | `POST /api/share` takes `expires` as a *string* number plus a separate `unit`, and falls through to hours for any unit it does not recognize — so a typo lengthens the link rather than erroring |
+| — | `POST /api/share` takes `expires` as a *string* number plus a separate `unit` |
 | — | `DELETE /api/share` answers 400, not 404, for a hash that does not exist |
-| — | A share's permission failure is a 403 with **no body**, while every other 403 on those routes carries the handler's own message — which is what makes the two tellable apart |
+| — | A share's permission failure is a 403 with **no body** |
 
 Upstream moves routes between releases, and a higher tag can be an older release.
 `GET /api/settings/sources` and `GET /api/tools/search` arrived in `v1.3.0-stable`, so `auth login`

@@ -77,19 +77,16 @@ macOS, and `dbus-launch` on Linux when no session bus is running.
   then abort. Handing the user's canceled context to the pause request cancels the
   pause too, which is the exact bug it exists to prevent.
 - **A graceful pause answers 499**, not a 4xx with a body.
-- **No endpoint reports how much of a partial upload arrived.** The temp file sits
-  beside the destination (`<realPath>.<md5>.uploading.tmp`) and nothing exposes it;
-  a stat of the destination 404s until the final chunk lands. That is why the
-  `resume` package exists. The server also **seeks to whatever offset it is given
-  without verifying the temp file is that long**, so a wrong offset yields a
-  silently corrupt file — hence the size-and-mtime guard in `resume.Store.Lookup`.
-- **Chunk bodies are buffered before sending, deliberately.** A reader that ends
-  early breaks the connection mid-body, the server reads that as a failed chunk, and
-  with no pause registered it deletes the whole partial upload. Streaming straight
-  from the file is cheaper but can destroy progress, so `Upload` reads each chunk
-  with `io.ReadFull` first and reports `ErrSourceTooShort`.
-- **`GET /resources/download` takes repeated `?file=`**, not `?path=`. It is the one
-  route that breaks the convention. It also builds and streams an archive itself for
+- **No endpoint reports how much of a partial upload arrived, and a resume offset is
+  never checked.** The temp file sits beside the destination
+  (`<realPath>.<md5>.uploading.tmp`) and nothing exposes it. The `resume` package
+  docstring says why that makes a local record carrying a fingerprint the only safe
+  resume, and `resume.Store.Lookup` is the guard that refuses a stale one.
+- **Chunk bodies are buffered before sending, deliberately.** The comment above the
+  buffer in `filebrowser.Client.Upload` says how streaming can destroy a partial
+  upload. A source that ends early is `ErrSourceTooShort`.
+- **`GET /resources/download` takes repeated `?file=`**, not `?path=`, as
+  `Client.Download`'s docstring says. It also builds and streams an archive itself for
   a directory or several paths, so `POST /resources/archive` is not needed.
 - **Every resource route requires `source`.** Quantum is multi-source, and a server
   may define several.
@@ -99,19 +96,13 @@ macOS, and `dbus-launch` on Linux when no session bus is running.
 - **The token goes in the `Authorization` header only.** The server also accepts
   `?auth=<token>`, which would put the secret in a reverse proxy's access log.
 - **A 403 on the share routes means three unrelated things**, and the status
-  alone cannot say which. A missing `share` permission comes from
-  `withPermShareHelper`, which returns the status with a *nil error* — so
-  `wrapHandler` writes no body at all. Every other 403 there (path not found,
-  private source) comes from the handler, which returns an error and therefore a
-  message. An empty message on a 403 is that exact discriminator, not a
-  heuristic, and `IsMissingPermission` is the only thing standing between the
-  user and a bare `403 Forbidden` with nothing to act on.
-- **`POST /share` takes `expires` as a string number beside a separate `unit`**,
-  and the switch falls through to hours for anything it does not recognize. A
-  misspelled unit therefore does not error — it silently multiplies the lifetime
-  by 24. `CreateShare` always sends seconds so there is one spelling to get
-  right, and clamps to 1 so a sub-second duration cannot round to 0, which the
-  server would accept as a link that expired before it existed.
+  alone cannot say which. `filebrowser.IsMissingPermission`'s docstring says why an
+  empty body is the exact tell for a missing permission. Upstream, the body-less one
+  comes from `withPermShareHelper` through `wrapHandler`.
+- **`POST /share` takes `expires` as a string number beside a separate `unit`.**
+  The comment in `CreateShare` says why it always sends seconds. It also clamps to 1,
+  so a sub-second duration cannot round to 0, which the server would accept as a link
+  that expired before it existed.
 - **`DELETE /share` answers 400 for a hash it cannot find**, not 404: the lookup
   fails before the handler decides anything is missing. `IsNotFound` never fires.
 - **A share's path comes back scoped and slash-suffixed.** The server joins the
@@ -173,17 +164,10 @@ gets it only if the server's `userDefaults` grant it. `ApplyUserDefaults` runs o
 when a user is auto-created, so changing the config does not grant it retroactively;
 on an existing OIDC user, login syncs `Admin` and nothing else.
 
-**There is not always an OS keyring to put the token in.** On Linux `go-keyring` is
-the Secret Service over D-Bus, and WSL, containers, and headless servers have no
-provider — the call fails with `exec: "dbus-launch": executable file not found in
-$PATH` before any request is made, which names nothing a user can act on. So the
-store falls back to a 0600 file and `Save` returns the `Backend` it used rather than
-swallowing it: a downgrade from keychain to plaintext has to be visible at the moment
-it happens. `Load` prefers the keyring whenever it holds a token. Nothing copies a
-file token across, so a host that gains a provider later moves onto it at the next
-`auth login`, whose `Save` lands in the keyring. The file copy stays behind until
-`Delete`, which clears both — otherwise a file token outlives the logout that was
-meant to remove it. The keyringless path is reproducible without WSL:
+**There is not always an OS keyring to put the token in.** `auth.TokenStore.Save`
+falls back to a 0600 file and returns the `Backend` it used, and its docstring says
+why. `Load` and `Delete` say how the two stores interact once both hold a token. The
+keyringless path is reproducible without WSL:
 
 ```bash
 GOOS=linux go build -o /tmp/ifiles . && docker run --rm -v /tmp:/w ubuntu:24.04 /w/ifiles list /
