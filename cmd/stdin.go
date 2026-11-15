@@ -10,8 +10,8 @@ import (
 	"golang.org/x/term"
 )
 
-// readAllStdin drains stdin. Kept separate so the prompt path in auth_login has
-// one obvious non-interactive counterpart, and so a test can exercise it.
+// readAllStdin drains stdin. It is readSecret's non-interactive path, taken when
+// stdin was requested, --no-input is set, or there is no terminal to prompt on.
 func readAllStdin() (string, error) {
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
