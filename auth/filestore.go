@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/datapointchris/ifiles/atomicfile"
 )
 
 // DefaultTokenPath reports the fallback token file, honoring XDG_STATE_HOME.
@@ -97,37 +99,12 @@ func (f *fileStore) load() (map[string]string, error) {
 	return tokens, nil
 }
 
-// write replaces the file atomically, so an interrupt cannot leave a truncated
-// token behind. os.CreateTemp already creates the file 0600, but the mode is set
-// explicitly as well: this is the line that keeps the token from being world
-// readable, and it should not survive only as a property of the helper.
+// write replaces the file atomically and owner-only, so an interrupt cannot leave
+// a truncated token behind and no other user can read the one it writes.
 func (f *fileStore) write(tokens map[string]string) error {
-	dir := filepath.Dir(f.path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("creating %s: %w", dir, err)
-	}
-
 	data, err := json.MarshalIndent(tokens, "", "  ")
 	if err != nil {
 		return err
 	}
-
-	temp, err := os.CreateTemp(dir, ".token-*.json")
-	if err != nil {
-		return err
-	}
-	tempName := temp.Name()
-	defer func() { _ = os.Remove(tempName) }()
-
-	if _, err := temp.Write(data); err != nil {
-		_ = temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tempName, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tempName, f.path)
+	return atomicfile.Write(f.path, ".token-*.json", data)
 }

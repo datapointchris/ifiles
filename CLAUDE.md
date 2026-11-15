@@ -56,7 +56,8 @@ the token, a header or a test stub attaches, once.
 - **Files ifiles owns** are each written by one type: the config by `config.Config.Save`,
   the fallback token file by `auth.fileStore.write`, the resume offsets by
   `resume.Store.write`, and the completion listings by `completion.Cache.write`. The last
-  three write a temp file and rename it into place, so a crash never leaves half a file.
+  three each marshal their own bytes and hand them to `atomicfile.Write`, the one place a
+  file is replaced owner-only through a temp file and a rename.
 - **The user's files** are read by `upload` and written by `download`, which streams into
   `<target>.ifilespart` and renames it when the transfer completes.
 

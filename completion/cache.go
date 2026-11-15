@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/datapointchris/ifiles/atomicfile"
 	"github.com/datapointchris/ifiles/filebrowser"
 )
 
@@ -131,34 +132,13 @@ func (c *Cache) load() (map[string]listing, error) {
 // zsh re-invokes the binary while a previous Tab may still be writing — and a
 // half-written file read by the next Tab would be discarded as corrupt, throwing
 // away every cached directory rather than one.
+//
+// It is owner-only too. Filenames are not secrets, but they are the shape of a
+// private filesystem, and every other file this tool writes is owner-only.
 func (c *Cache) write(listings map[string]listing) error {
-	if err := os.MkdirAll(filepath.Dir(c.path), 0o700); err != nil {
-		return fmt.Errorf("creating %s: %w", filepath.Dir(c.path), err)
-	}
-
 	data, err := json.Marshal(listings)
 	if err != nil {
 		return err
 	}
-
-	temp, err := os.CreateTemp(filepath.Dir(c.path), ".listings-*.json")
-	if err != nil {
-		return err
-	}
-	tempName := temp.Name()
-	defer func() { _ = os.Remove(tempName) }()
-
-	if _, err := temp.Write(data); err != nil {
-		_ = temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	// Filenames are not secrets, but they are the shape of a private filesystem,
-	// and every other file this tool writes is owner-only.
-	if err := os.Chmod(tempName, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tempName, c.path)
+	return atomicfile.Write(c.path, ".listings-*.json", data)
 }

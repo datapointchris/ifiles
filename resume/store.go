@@ -24,6 +24,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/datapointchris/ifiles/atomicfile"
 )
 
 // Kind distinguishes the two directions, so an upload record can never satisfy a
@@ -186,31 +188,9 @@ func (s *Store) load() (map[string]Record, error) {
 // write replaces the state file atomically, so an interrupt during the write
 // cannot leave behind a truncated file whose offsets would corrupt a later resume.
 func (s *Store) write(records map[string]Record) error {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return fmt.Errorf("creating %s: %w", filepath.Dir(s.path), err)
-	}
-
 	data, err := json.MarshalIndent(records, "", "  ")
 	if err != nil {
 		return err
 	}
-
-	temp, err := os.CreateTemp(filepath.Dir(s.path), ".transfers-*.json")
-	if err != nil {
-		return err
-	}
-	tempName := temp.Name()
-	defer func() { _ = os.Remove(tempName) }()
-
-	if _, err := temp.Write(data); err != nil {
-		_ = temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(tempName, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tempName, s.path)
+	return atomicfile.Write(s.path, ".transfers-*.json", data)
 }
