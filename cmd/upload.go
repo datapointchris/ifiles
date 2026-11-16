@@ -159,7 +159,13 @@ func putFile(cmd *cobra.Command, client *filebrowser.Client, localPath, remotePa
 		Progress: func(sent int64) {
 			bar.Set(sent)
 			// Recorded per chunk rather than at the end, because the point of the
-			// record is to survive the case where there is no end.
+			// record is to survive the case where there is no end. The last chunk
+			// is not recorded: Lookup never resumes from the total, and the Clear
+			// that follows then has nothing to delete, so a one-chunk file writes
+			// the state file not at all.
+			if sent >= info.Size() {
+				return
+			}
 			progressed := record
 			progressed.Offset = sent
 			_ = store.Save(progressed)
