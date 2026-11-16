@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -83,10 +84,12 @@ UI's per-account setting.`,
 		}
 
 		if !lsLong {
+			// One buffer for the whole listing, rather than a write per name.
+			out := bufio.NewWriter(cmd.OutOrStdout())
 			for _, entry := range entries {
-				outf(cmd, "%s", name(entry))
+				writef(out, "%s\n", name(entry))
 			}
-			return nil
+			return out.Flush()
 		}
 
 		table := newTable(cmd.OutOrStdout())

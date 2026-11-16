@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,6 +35,23 @@ func emitJSON(cmd *cobra.Command, v any) error {
 	return enc.Encode(v)
 }
 
-func newTable(w io.Writer) *tabwriter.Writer {
-	return tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+// table aligns columns into a buffer over w. A tabwriter writes each cell and
+// each run of padding as a write of its own, which on an unbuffered stdout is a
+// syscall apiece, so the buffer collects them and Flush sends the table at once.
+type table struct {
+	*tabwriter.Writer
+	out *bufio.Writer
+}
+
+func newTable(w io.Writer) *table {
+	out := bufio.NewWriter(w)
+	return &table{Writer: tabwriter.NewWriter(out, 0, 0, 2, ' ', 0), out: out}
+}
+
+// Flush aligns the buffered rows, then writes them to the underlying writer.
+func (t *table) Flush() error {
+	if err := t.Writer.Flush(); err != nil {
+		return err
+	}
+	return t.out.Flush()
 }
