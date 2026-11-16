@@ -182,8 +182,8 @@ and `download`'s second, fall through to the shell's own file completion. `--sou
 the server's source list.
 
 Each Tab is a real request. The shell runs `ifiles __complete download /photos/` as a fresh process,
-so nothing can be held in memory between them. Listings are cached at
-`$XDG_CACHE_HOME/ifiles/listings.json` for a few seconds. That is long enough that tabbing through
+so nothing can be held in memory between them. Listings are cached under
+`$XDG_CACHE_HOME/ifiles/listings/`, one file per directory, for a few seconds. That is long enough that tabbing through
 one directory hits the server once. It is short enough that a file uploaded by the previous command
 shows up in the next completion.
 
@@ -215,7 +215,7 @@ different file.
 | `$XDG_CONFIG_HOME/ifiles/config.toml` | the server URL and source, at `0600` | an `auth login` |
 | the OS keyring, or `$XDG_STATE_HOME/ifiles/token.json` at `0600` | the token, keyed by server URL | an `auth login` |
 | `$XDG_STATE_HOME/ifiles/transfers.json` | the offset of each interrupted upload | the whole transfer, sent again |
-| `$XDG_CACHE_HOME/ifiles/listings.json` | completion listings | one request |
+| `$XDG_CACHE_HOME/ifiles/listings/` | completion listings, a file per directory, at `0600` | one request |
 | `<destination>.ifilespart` | a partial download, renamed into place when complete | the bytes already fetched |
 
 ## What this deliberately does not do

@@ -13,10 +13,13 @@
 package completion
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/datapointchris/ifiles/atomicfile"
@@ -35,33 +38,52 @@ type listing struct {
 	FetchedAt time.Time          `json:"fetchedAt"`
 }
 
-// Cache is a TTL'd map of directory listings on disk. Cache, not state: losing it
-// costs one request, which is why it lives under XDG_CACHE_HOME while the resume
-// offsets — whose loss costs a whole transfer — live under XDG_STATE_HOME.
+// Cache is a TTL'd set of directory listings on disk, one file per directory.
+// Cache, not state: losing it costs one request, which is why it lives under
+// XDG_CACHE_HOME while the resume offsets — whose loss costs a whole transfer —
+// live under XDG_STATE_HOME.
+//
+// A file per directory means a Tab reads and parses only the listing it asks
+// for, however many other directories are cached, and two Tabs on different
+// directories never rewrite each other's listings.
 type Cache struct {
-	path string
-	ttl  time.Duration
+	dir string
+	ttl time.Duration
+	// singleFile is the one-file layout of earlier releases, removed on the
+	// next write so it does not sit in the cache directory forever. Empty for
+	// a cache built by NewCacheAt.
+	singleFile string
 }
 
-// DefaultPath reports where cached listings live, honoring XDG_CACHE_HOME.
-func DefaultPath() string {
+// DefaultDir reports where cached listings live, honoring XDG_CACHE_HOME.
+func DefaultDir() string {
 	dir, err := xdg.CacheDir()
 	if err != nil {
-		return filepath.Join(os.TempDir(), "ifiles-listings.json")
+		return filepath.Join(os.TempDir(), "ifiles-listings")
 	}
-	return filepath.Join(dir, "listings.json")
+	return filepath.Join(dir, "listings")
 }
 
-// NewCache returns a cache over DefaultPath whose entries live for DefaultTTL.
-func NewCache() *Cache { return &Cache{path: DefaultPath(), ttl: DefaultTTL} }
-
-// NewCacheAt builds a cache over a specific file and TTL, for tests.
-func NewCacheAt(path string, ttl time.Duration) *Cache {
-	return &Cache{path: path, ttl: ttl}
+// NewCache returns a cache over DefaultDir whose entries live for DefaultTTL.
+func NewCache() *Cache {
+	dir := DefaultDir()
+	return &Cache{dir: dir, ttl: DefaultTTL, singleFile: dir + ".json"}
 }
 
-// Path reports the file the cache reads and writes.
-func (c *Cache) Path() string { return c.path }
+// NewCacheAt builds a cache over a specific directory and TTL, for tests.
+func NewCacheAt(dir string, ttl time.Duration) *Cache {
+	return &Cache{dir: dir, ttl: ttl}
+}
+
+// Dir reports the directory the cache reads and writes.
+func (c *Cache) Dir() string { return c.dir }
+
+// file names a key's listing by a hash of the key, because the key holds a URL
+// and a path that are not safe as a filename.
+func (c *Cache) file(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return filepath.Join(c.dir, hex.EncodeToString(sum[:])+".json")
+}
 
 // Key identifies a directory on a particular server and source. All three matter:
 // the same path names different files under a different source, and --source and
@@ -70,14 +92,16 @@ func Key(serverURL, source, remotePath string) string {
 	return serverURL + "\x00" + source + "\x00" + remotePath
 }
 
-// Lookup returns a cached listing if one is present and still fresh.
+// Lookup returns a cached listing if one is present and still fresh. A missing,
+// unreadable or corrupt file is a miss: a cached listing is worth exactly one
+// request to replace, so nothing about it is reported.
 func (c *Cache) Lookup(key string) ([]filebrowser.Item, bool) {
-	listings, err := c.load()
+	data, err := os.ReadFile(c.file(key))
 	if err != nil {
 		return nil, false
 	}
-	cached, ok := listings[key]
-	if !ok {
+	var cached listing
+	if err := json.Unmarshal(data, &cached); err != nil {
 		return nil, false
 	}
 	if time.Since(cached.FetchedAt) > c.ttl {
@@ -86,52 +110,54 @@ func (c *Cache) Lookup(key string) ([]filebrowser.Item, bool) {
 	return cached.Items, true
 }
 
-// Store records a listing, dropping any that have expired. Pruning on write is
-// what bounds the file: a walk through a deep tree caches a directory per Tab,
-// and nothing else ever deletes them.
+// Store records a listing, then removes every other listing that has expired.
+// Pruning on write is what bounds the directory: a walk through a deep tree
+// caches a directory per Tab, and nothing else ever deletes them. Expiry is read
+// from each file's modification time, so pruning parses none of them.
 func (c *Cache) Store(key string, items []filebrowser.Item) error {
-	listings, err := c.load()
-	if err != nil {
+	if err := c.write(c.file(key), listing{Items: items, FetchedAt: time.Now().UTC()}); err != nil {
 		return err
 	}
-	for existing, cached := range listings {
-		if time.Since(cached.FetchedAt) > c.ttl {
-			delete(listings, existing)
-		}
+	if c.singleFile != "" {
+		_ = os.Remove(c.singleFile)
 	}
-	listings[key] = listing{Items: items, FetchedAt: time.Now().UTC()}
-	return c.write(listings)
+	c.prune(filepath.Base(c.file(key)))
+	return nil
 }
 
-func (c *Cache) load() (map[string]listing, error) {
-	data, err := os.ReadFile(c.path)
-	if os.IsNotExist(err) {
-		return map[string]listing{}, nil
-	}
+// prune removes expired listings other than keep. A name starting with a dot is
+// another completion's temp file mid-write, and is left for its rename.
+func (c *Cache) prune(keep string) {
+	entries, err := os.ReadDir(c.dir)
 	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", c.path, err)
+		return
 	}
-
-	listings := map[string]listing{}
-	if err := json.Unmarshal(data, &listings); err != nil {
-		// A corrupt cache is worth exactly one request to replace, so it is
-		// discarded rather than reported.
-		return map[string]listing{}, nil
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == keep || strings.HasPrefix(name, ".") || filepath.Ext(name) != ".json" {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil || time.Since(info.ModTime()) <= c.ttl {
+			continue
+		}
+		_ = os.Remove(filepath.Join(c.dir, name))
 	}
-	return listings, nil
 }
 
-// write replaces the file atomically. A completion runs concurrently with itself —
-// zsh re-invokes the binary while a previous Tab may still be writing — and a
-// half-written file read by the next Tab would be discarded as corrupt, throwing
-// away every cached directory rather than one.
+// write replaces one listing's file atomically. A completion runs concurrently
+// with itself — zsh re-invokes the binary while a previous Tab may still be
+// writing — and a half-written file read by the next Tab would be a miss.
 //
 // It is owner-only too. Filenames are not secrets, but they are the shape of a
 // private filesystem, and every other file this tool writes is owner-only.
-func (c *Cache) write(listings map[string]listing) error {
-	data, err := json.Marshal(listings)
+func (c *Cache) write(path string, cached listing) error {
+	data, err := json.Marshal(cached)
 	if err != nil {
 		return err
 	}
-	return atomicfile.Write(c.path, ".listings-*.json", data)
+	if err := atomicfile.Write(path, ".listing-*.json", data); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+	return nil
 }

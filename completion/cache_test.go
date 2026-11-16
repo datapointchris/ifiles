@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,7 +11,7 @@ import (
 
 func cacheAt(t *testing.T, ttl time.Duration) *Cache {
 	t.Helper()
-	return NewCacheAt(filepath.Join(t.TempDir(), "listings.json"), ttl)
+	return NewCacheAt(filepath.Join(t.TempDir(), "listings"), ttl)
 }
 
 func photos() []filebrowser.Item {
@@ -78,24 +77,21 @@ func TestCacheDropsExpiredEntriesOnWrite(t *testing.T) {
 	t.Parallel()
 
 	// Nothing else ever deletes an entry, so without pruning here a walk through a
-	// deep tree leaves a file that grows by a directory per Tab, forever.
+	// deep tree leaves a directory that grows by a listing per Tab, forever.
 	cache := cacheAt(t, 0)
+	newest := Key("https://files.example.com", "files", "/c")
 	for _, dir := range []string{"/a", "/b", "/c"} {
 		if err := cache.Store(Key("https://files.example.com", "files", dir), photos()); err != nil {
 			t.Fatalf("Store() returned error: %v", err)
 		}
 	}
 
-	data, err := os.ReadFile(cache.Path())
+	entries, err := os.ReadDir(cache.Dir())
 	if err != nil {
 		t.Fatalf("reading cache: %v", err)
 	}
-	stored := map[string]json.RawMessage{}
-	if err := json.Unmarshal(data, &stored); err != nil {
-		t.Fatalf("parsing cache: %v", err)
-	}
-	if len(stored) != 1 {
-		t.Errorf("cache holds %d entries, want only the newest", len(stored))
+	if len(entries) != 1 || entries[0].Name() != filepath.Base(cache.file(newest)) {
+		t.Errorf("cache holds %d listings, want only the newest", len(entries))
 	}
 }
 
@@ -105,15 +101,22 @@ func TestCacheTreatsACorruptFileAsEmpty(t *testing.T) {
 	// A cache is worth exactly one request to replace. Reporting the corruption
 	// would turn a recoverable state into a completion that never works again.
 	cache := cacheAt(t, DefaultTTL)
-	if err := os.WriteFile(cache.Path(), []byte("{not json"), 0o600); err != nil {
+	key := Key("https://files.example.com", "files", "/")
+	if err := os.MkdirAll(cache.Dir(), 0o700); err != nil {
+		t.Fatalf("creating cache: %v", err)
+	}
+	if err := os.WriteFile(cache.file(key), []byte("{not json"), 0o600); err != nil {
 		t.Fatalf("writing cache: %v", err)
 	}
 
-	if _, ok := cache.Lookup(Key("https://files.example.com", "files", "/")); ok {
+	if _, ok := cache.Lookup(key); ok {
 		t.Error("Lookup() returned something from a corrupt cache")
 	}
-	if err := cache.Store(Key("https://files.example.com", "files", "/"), photos()); err != nil {
+	if err := cache.Store(key, photos()); err != nil {
 		t.Errorf("Store() over a corrupt cache returned error: %v", err)
+	}
+	if _, ok := cache.Lookup(key); !ok {
+		t.Error("Lookup() found nothing after Store() replaced a corrupt listing")
 	}
 }
 
@@ -123,11 +126,12 @@ func TestCacheWritesOwnerOnly(t *testing.T) {
 	// Filenames are not secrets, but they are the shape of a private filesystem,
 	// and every other file this tool writes is 0600.
 	cache := cacheAt(t, DefaultTTL)
-	if err := cache.Store(Key("https://files.example.com", "files", "/"), photos()); err != nil {
+	key := Key("https://files.example.com", "files", "/")
+	if err := cache.Store(key, photos()); err != nil {
 		t.Fatalf("Store() returned error: %v", err)
 	}
 
-	info, err := os.Stat(cache.Path())
+	info, err := os.Stat(cache.file(key))
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
@@ -136,11 +140,11 @@ func TestCacheWritesOwnerOnly(t *testing.T) {
 	}
 }
 
-func TestDefaultPathHonorsXDGCacheHome(t *testing.T) {
+func TestDefaultDirHonorsXDGCacheHome(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", dir)
 
-	if got, want := DefaultPath(), filepath.Join(dir, "ifiles", "listings.json"); got != want {
-		t.Errorf("DefaultPath() = %q, want %q", got, want)
+	if got, want := DefaultDir(), filepath.Join(dir, "ifiles", "listings"); got != want {
+		t.Errorf("DefaultDir() = %q, want %q", got, want)
 	}
 }
