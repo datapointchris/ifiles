@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -42,9 +42,8 @@ type Listing struct {
 // shows, so a listing read in the terminal matches one read in the browser.
 func (l *Listing) Entries() []Item {
 	byName := func(items []Item) []Item {
-		sorted := make([]Item, len(items))
-		copy(sorted, items)
-		sort.SliceStable(sorted, func(a, b int) bool { return sorted[a].Name < sorted[b].Name })
+		sorted := slices.Clone(items)
+		slices.SortStableFunc(sorted, func(a, b Item) int { return strings.Compare(a.Name, b.Name) })
 		return sorted
 	}
 

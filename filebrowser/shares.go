@@ -1,11 +1,13 @@
 package filebrowser
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"net/url"
-	"sort"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -82,11 +84,8 @@ func (c *Client) SharesForPath(ctx context.Context, remotePath string) ([]Share,
 // sortShares gives a stable order. The server answers in storage order, which is
 // a map iteration and therefore differs between two identical requests.
 func sortShares(shares []Share) {
-	sort.SliceStable(shares, func(a, b int) bool {
-		if shares[a].Path != shares[b].Path {
-			return shares[a].Path < shares[b].Path
-		}
-		return shares[a].Hash < shares[b].Hash
+	slices.SortStableFunc(shares, func(a, b Share) int {
+		return cmp.Or(strings.Compare(a.Path, b.Path), strings.Compare(a.Hash, b.Hash))
 	})
 }
 
